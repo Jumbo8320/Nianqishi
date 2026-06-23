@@ -3,65 +3,467 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>念齐师</title>
+  <title>信号处理系统项目实训</title>
   <style>
+    :root {
+      --ink: #f7fbff;
+      --muted: rgba(247, 251, 255, 0.72);
+      --blue: #0a84ff;
+      --cyan: #64d2ff;
+      --gold: #ffd166;
+      --line: rgba(255, 255, 255, 0.14);
+      --glass: rgba(255, 255, 255, 0.055);
+    }
+
     * {
       box-sizing: border-box;
     }
 
+    html,
     body {
       margin: 0;
+      min-height: 100%;
+      background: #020408;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "Microsoft YaHei", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
       min-height: 100vh;
       display: grid;
       place-items: center;
-      padding: 24px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #202124;
-      background: #f7f4ef;
+      isolation: isolate;
     }
 
-    main {
-      width: min(100%, 520px);
-      padding: 28px;
-      border: 1px solid #ded7cc;
-      border-radius: 8px;
-      background: #fffdfa;
-      box-shadow: 0 16px 40px rgba(32, 33, 36, 0.08);
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -20%;
+      z-index: -3;
+      background:
+        radial-gradient(ellipse at 72% 22%, rgba(10, 132, 255, 0.32), transparent 38%),
+        radial-gradient(ellipse at 30% 78%, rgba(255, 209, 102, 0.16), transparent 34%),
+        linear-gradient(140deg, #000 0%, #06101c 43%, #000 100%);
     }
 
-    h1 {
-      margin: 0 0 8px;
-      font-size: clamp(28px, 8vw, 42px);
-      line-height: 1.1;
-      font-weight: 700;
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 78%, transparent 100%);
+      opacity: 0.38;
+    }
+
+    .poster {
+      position: relative;
+      width: min(100%, 1440px);
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: clamp(22px, 4vw, 64px);
+    }
+
+    .scanline {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background: linear-gradient(115deg, transparent 0 39%, rgba(100, 210, 255, 0.12) 45%, transparent 52% 100%);
+      transform: translateX(-120%);
+      animation: sweep 7s cubic-bezier(.2, .75, .22, 1) infinite;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 32px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mark {
+      width: 34px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 50%;
+      position: relative;
+      opacity: 0.78;
+    }
+
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(100, 210, 255, 0.62);
+      border-radius: 50%;
+    }
+
+    .mark::after {
+      inset: 15px;
+      background: var(--gold);
+      border: 0;
+      box-shadow: 0 0 20px rgba(255, 209, 102, 0.68);
+    }
+
+    .members {
+      margin: 0;
+      max-width: 780px;
+      color: var(--muted);
+      font-size: clamp(13px, 1.35vw, 18px);
+      line-height: 1.7;
+      text-align: right;
       letter-spacing: 0;
     }
 
-    p {
-      margin: 0 0 22px;
-      color: #68625a;
-      font-size: 16px;
-      line-height: 1.65;
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(320px, 0.82fr) minmax(360px, 1.18fr);
+      align-items: center;
+      gap: clamp(20px, 5vw, 76px);
+      padding-block: clamp(24px, 5vw, 80px) clamp(32px, 6vw, 88px);
+    }
+
+    .copy {
+      position: relative;
+      z-index: 2;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 720px;
+      font-size: clamp(52px, 8.4vw, 122px);
+      line-height: 0.94;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-wrap: balance;
+      background: linear-gradient(180deg, #fff 0%, #d8ecff 38%, #78bdff 68%, #ffffff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 18px 46px rgba(10, 132, 255, 0.28));
+    }
+
+    .subtitle {
+      margin: clamp(22px, 3vw, 34px) 0 0;
+      color: var(--ink);
+      font-size: clamp(24px, 3.2vw, 48px);
+      line-height: 1.12;
+      font-weight: 650;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .rule {
+      width: min(340px, 72%);
+      height: 1px;
+      margin-top: clamp(26px, 4vw, 52px);
+      background: linear-gradient(90deg, var(--cyan), rgba(255, 255, 255, 0.1), transparent);
+    }
+
+    .visual {
+      position: relative;
+      min-height: clamp(360px, 54vw, 760px);
+      display: grid;
+      place-items: center;
+      perspective: 1400px;
+    }
+
+    .halo {
+      position: absolute;
+      width: min(54vw, 780px);
+      aspect-ratio: 1.3;
+      border: 1px solid rgba(100, 210, 255, 0.16);
+      transform: rotateX(64deg) rotateZ(-17deg);
+      box-shadow:
+        0 0 0 1px rgba(255, 209, 102, 0.05) inset,
+        0 0 70px rgba(10, 132, 255, 0.18);
+      opacity: 0.72;
+    }
+
+    .board-wrap {
+      position: relative;
+      width: min(64vw, 900px);
+      max-width: 100%;
+      transform-style: preserve-3d;
+      animation: float 5.8s ease-in-out infinite;
+    }
+
+    .board-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 11% 6% -7% 10%;
+      z-index: -1;
+      background: rgba(5, 14, 30, 0.96);
+      filter: blur(34px);
+      transform: translate3d(0, 44px, -120px) rotate(-4deg) scale(0.94);
+      opacity: 0.9;
+    }
+
+    .board {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter:
+        drop-shadow(0 36px 80px rgba(0, 0, 0, 0.72))
+        drop-shadow(0 0 36px rgba(10, 132, 255, 0.24));
+      transform: rotateX(2deg) rotateY(-7deg);
+      transform-origin: center;
+    }
+
+    .spec {
+      position: absolute;
+      right: clamp(0px, 2vw, 24px);
+      bottom: clamp(20px, 7vw, 86px);
+      width: min(430px, 48vw);
+      padding: 18px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.035));
+      backdrop-filter: blur(22px);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .spec p {
+      margin: 0;
+      font-size: clamp(17px, 1.8vw, 26px);
+      font-weight: 650;
+      line-height: 1.35;
+      letter-spacing: 0;
+      color: #fff;
+    }
+
+    .micro-entry {
+      position: fixed;
+      right: 9px;
+      bottom: 8px;
+      z-index: 20;
+      width: 14px;
+      height: 14px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.11);
+      opacity: 0.22;
+      cursor: pointer;
+      transition: opacity .2s ease, transform .2s ease, background .2s ease;
+    }
+
+    .micro-entry:hover,
+    .micro-entry:focus-visible {
+      opacity: 0.5;
+      background: rgba(255, 255, 255, 0.26);
+      transform: scale(1.12);
+      outline: none;
+    }
+
+    .drawer {
+      position: fixed;
+      right: 24px;
+      bottom: 28px;
+      z-index: 19;
+      width: min(300px, calc(100vw - 48px));
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(2, 4, 8, 0.86);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+      transform: translateY(18px) scale(0.96);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .24s ease, transform .24s ease;
+    }
+
+    .drawer.is-open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .drawer h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .close {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 50%;
+      color: rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 28px;
     }
 
     audio {
       width: 100%;
-      display: block;
+      height: 36px;
     }
 
-    .hint {
-      margin-top: 18px;
-      font-size: 14px;
-      color: #80786f;
+    @keyframes sweep {
+      0%, 54% {
+        transform: translateX(-120%);
+      }
+      84%, 100% {
+        transform: translateX(120%);
+      }
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translate3d(0, -8px, 0) rotateZ(-1deg);
+      }
+      50% {
+        transform: translate3d(0, 14px, 0) rotateZ(1.2deg);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .poster {
+        padding: 18px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        gap: 18px;
+      }
+
+      .members {
+        max-width: 72vw;
+        font-size: 12px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        align-content: start;
+        gap: 8px;
+        padding-block: 46px 68px;
+      }
+
+      h1 {
+        font-size: clamp(46px, 15vw, 76px);
+      }
+
+      .subtitle {
+        font-size: clamp(22px, 7vw, 38px);
+      }
+
+      .visual {
+        min-height: 390px;
+        margin-top: -12px;
+      }
+
+      .board-wrap {
+        width: min(112vw, 760px);
+        margin-left: -10vw;
+      }
+
+      .halo {
+        width: 94vw;
+      }
+
+      .spec {
+        right: 0;
+        bottom: 0;
+        width: min(360px, 78vw);
+        padding: 14px 16px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .topbar {
+        border-bottom-color: rgba(255,255,255,0.09);
+      }
+
+      .members {
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .mark {
+        width: 28px;
+        flex: 0 0 auto;
+      }
+
+      .visual {
+        min-height: 330px;
+      }
+
+      .spec {
+        width: calc(100vw - 36px);
+      }
     }
   </style>
 </head>
 <body>
-  <main>
-    <h1>念齐师</h1>
-    <p>点击播放即可收听。</p>
-    <audio controls preload="metadata" src="audio.mp3"></audio>
-    <div class="hint">如果没有声音，请检查手机静音开关或音量。</div>
+  <div class="scanline" aria-hidden="true"></div>
+  <main class="poster">
+    <header class="topbar">
+      <div class="mark" aria-hidden="true"></div>
+      <p class="members">成员：苏圣烨 刘昱辰 姜泊仰 钦豪琦 梁哲宇 李翔宇</p>
+    </header>
+
+    <section class="hero" aria-label="信号处理系统项目实训">
+      <div class="copy">
+        <h1>信号处理系统项目实训</h1>
+        <p class="subtitle">ADDA高速采集子卡（4路AD，4路DA）</p>
+        <div class="rule" aria-hidden="true"></div>
+      </div>
+
+      <div class="visual" aria-hidden="true">
+        <div class="halo"></div>
+        <div class="board-wrap">
+          <img class="board" src="c19ad33b313f6ef069a48b53900336ef.png" alt="">
+        </div>
+      </div>
+    </section>
   </main>
+
+  <button class="micro-entry" type="button" aria-label="nianqishi"></button>
+  <aside class="drawer" id="nianqishi" aria-hidden="true">
+    <div class="drawer-header">
+      <h2>nianqishi</h2>
+      <button class="close" type="button" aria-label="close">×</button>
+    </div>
+    <audio controls preload="metadata" src="audio.mp3"></audio>
+  </aside>
+
+  <script>
+    const entry = document.querySelector(".micro-entry");
+    const drawer = document.querySelector(".drawer");
+    const close = document.querySelector(".close");
+
+    function setDrawer(open) {
+      drawer.classList.toggle("is-open", open);
+      drawer.setAttribute("aria-hidden", String(!open));
+    }
+
+    entry.addEventListener("click", () => setDrawer(!drawer.classList.contains("is-open")));
+    close.addEventListener("click", () => setDrawer(false));
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        setDrawer(false);
+      }
+    });
+  </script>
 </body>
 </html>
