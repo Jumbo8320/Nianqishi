@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>总体架构 | ADDA 高速采集子卡</title>
+  <style>
+    :root {
+      --ink: #f7fbff;
+      --text: rgba(247, 251, 255, 0.84);
+      --muted: rgba(247, 251, 255, 0.66);
+      --soft: rgba(247, 251, 255, 0.48);
+      --cyan: #64d2ff;
+      --blue: #0a84ff;
+      --gold: #ffd166;
+      --line: rgba(255, 255, 255, 0.14);
+      --panel: rgba(255, 255, 255, 0.065);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #020408;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      z-index: -2;
+      background:
+        radial-gradient(ellipse at 78% 12%, rgba(10, 132, 255, 0.28), transparent 35%),
+        radial-gradient(ellipse at 20% 74%, rgba(255, 209, 102, 0.12), transparent 30%),
+        linear-gradient(145deg, #000 0%, #06101d 48%, #000 100%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,0.032) 1px, transparent 1px);
+      background-size: 76px 76px;
+      opacity: 0.32;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      width: min(100%, 1180px);
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 50px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(247, 251, 255, 0.86);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .mark {
+      width: 30px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 50%;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .mark::before {
+      inset: 8px;
+      border: 1px solid rgba(100, 210, 255, 0.68);
+    }
+
+    .mark::after {
+      inset: 14px;
+      background: var(--gold);
+      box-shadow: 0 0 16px rgba(255, 209, 102, 0.62);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 13px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(247, 251, 255, 0.76);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 650;
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      border-color: rgba(100, 210, 255, 0.46);
+      background: rgba(10, 132, 255, 0.13);
+      color: #fff;
+      outline: none;
+    }
+
+    .intro {
+      padding-block: clamp(34px, 6vw, 70px) clamp(28px, 5vw, 54px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--cyan);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      color: #fff;
+      font-size: clamp(34px, 5.2vw, 60px);
+      line-height: 1.16;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .lead {
+      margin: 22px 0 0;
+      max-width: 900px;
+      color: var(--text);
+      font-size: clamp(17px, 1.55vw, 21px);
+      line-height: 1.82;
+      font-weight: 520;
+    }
+
+    .section {
+      padding-block: clamp(40px, 6vw, 74px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(220px, .34fr) minmax(320px, .66fr);
+      gap: clamp(22px, 4vw, 54px);
+      align-items: start;
+      margin-bottom: clamp(24px, 4vw, 42px);
+    }
+
+    .section-kicker {
+      margin: 0;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 10px 0 0;
+      color: #fff;
+      font-size: clamp(28px, 3.4vw, 44px);
+      line-height: 1.18;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .section-copy {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(16px, 1.25vw, 19px);
+      line-height: 1.86;
+    }
+
+    .figure {
+      margin: 0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.045);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+      overflow: hidden;
+    }
+
+    .figure img {
+      display: block;
+      width: min(50%, 560px);
+      height: auto;
+      margin: 0 auto;
+      background: rgba(2, 4, 8, 0.62);
+    }
+
+    @media (max-width: 680px) {
+      .figure img {
+        width: 100%;
+      }
+    }
+
+    .figure figcaption {
+      padding: 14px 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .points {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .point,
+    .step {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: linear-gradient(135deg, rgba(255,255,255,0.092), rgba(255,255,255,0.035));
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
+    }
+
+    .point {
+      min-height: 156px;
+      padding: 22px;
+      border-radius: 8px;
+    }
+
+    .point small {
+      display: block;
+      margin-bottom: 12px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .point h3,
+    .step h3 {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(20px, 1.9vw, 24px);
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    .point p,
+    .step p {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.78;
+    }
+
+    .interface-card {
+      grid-column: span 2;
+      background:
+        linear-gradient(135deg, rgba(10,132,255,0.16), rgba(255,255,255,0.04)),
+        rgba(255, 255, 255, 0.055);
+    }
+
+    .link-pair {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .link-pill {
+      min-height: 76px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .link-pill b {
+      color: #fff;
+      font-size: clamp(18px, 2vw, 26px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .link-pill em {
+      color: rgba(247, 251, 255, 0.74);
+      font-size: 13px;
+      font-style: normal;
+      font-weight: 650;
+    }
+
+    .link-pill.jesd {
+      background: linear-gradient(135deg, rgba(100, 210, 255, 0.28), rgba(10, 132, 255, 0.08));
+      box-shadow: 0 14px 38px rgba(10, 132, 255, 0.16);
+    }
+
+    .link-pill.spi {
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.28), rgba(255, 255, 255, 0.05));
+      box-shadow: 0 14px 38px rgba(255, 209, 102, 0.12);
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 18px;
+      position: relative;
+    }
+
+    .step {
+      min-height: 160px;
+      padding: 20px;
+      position: relative;
+      overflow: visible;
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.035)),
+        rgba(255, 255, 255, 0.045);
+    }
+
+    .step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 31px;
+      right: -14px;
+      z-index: 2;
+      width: 18px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(100, 210, 255, 0.72), rgba(255, 209, 102, 0.72));
+    }
+
+    .step:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      top: 27px;
+      right: -17px;
+      z-index: 3;
+      width: 8px;
+      height: 8px;
+      border-top: 1px solid rgba(255, 209, 102, 0.78);
+      border-right: 1px solid rgba(255, 209, 102, 0.78);
+      transform: rotate(45deg);
+    }
+
+    .step b {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(100, 210, 255, 0.26);
+      color: var(--cyan);
+      font-size: 13px;
+    }
+
+    .note {
+      margin-top: 18px;
+      padding: 18px 20px;
+      border-left: 2px solid rgba(255, 209, 102, 0.62);
+      background: rgba(255, 255, 255, 0.052);
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.78;
+    }
+
+    .closing {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding-block: clamp(34px, 5vw, 54px) 6px;
+    }
+
+    .closing p {
+      margin: 0;
+      max-width: 740px;
+      color: var(--soft);
+      font-size: 15px;
+      line-height: 1.72;
+    }
+
+    .back-button {
+      flex: 0 0 auto;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      border: 1px solid rgba(100, 210, 255, 0.3);
+      background: rgba(10, 132, 255, 0.13);
+      color: #fff;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 750;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    .back-button:hover,
+    .back-button:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(255, 209, 102, 0.58);
+      background: rgba(10, 132, 255, 0.22);
+      outline: none;
+    }
+
+    @media (max-width: 1080px) {
+      .section-head {
+        grid-template-columns: 1fr;
+      }
+
+      .points {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .workflow {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .step::before,
+      .step::after {
+        display: none;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .page {
+        padding: 18px;
+      }
+
+      .topbar,
+      .closing {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .points,
+      .workflow {
+        grid-template-columns: 1fr;
+      }
+
+      .interface-card {
+        grid-column: span 1;
+      }
+
+      .link-pair {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="mark" aria-hidden="true"></span>
+        <span>ADDA 高速采集子卡</span>
+      </a>
+      <nav class="nav" aria-label="页面导航">
+        <a href="index.html">首页</a>
+        <a href="intro.html">项目简介</a>
+        <a href="#board">板卡架构</a>
+        <a href="#workflow">工作架构</a>
+      </nav>
+    </header>
+
+    <section class="intro">
+      <p class="eyebrow">总体架构</p>
+      <h1>ADDA 子板与 FPGA 主板的系统架构</h1>
+      <p class="lead">
+        本页展示高速采集子卡的整体设计思路：板卡侧完成 AD/DA 转换、时钟分配和高速接口连接，FPGA 侧完成配置控制、数据收发和状态验证。
+      </p>
+    </section>
+
+    <section class="section" id="board">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Board Architecture</p>
+          <h2>板卡硬件架构</h2>
+        </div>
+        <p class="section-copy">
+          ADDA 子板承担模拟输入、模拟输出、采样时钟和高速串行接口等任务；FPGA 主板承担芯片配置、数据接收、数据发送和状态监测。
+          板卡结构围绕“转换芯片、时钟系统、控制链路、数据链路”展开。
+        </p>
+      </div>
+
+      <figure class="figure">
+        <img src="assets/总体架构.png" alt="ADDA 子板总体架构图">
+        <figcaption>ADDA 子板总体架构图：包括模拟输入输出、AD/DA 转换、时钟分配、FPGA 接口和控制链路。</figcaption>
+      </figure>
+
+      <div class="points">
+        <article class="point">
+          <small>Input</small>
+          <h3>模拟输入</h3>
+          <p>外部中频信号进入 AD 采集通道，经前端处理后送入高速 ADC。</p>
+        </article>
+        <article class="point">
+          <small>Output</small>
+          <h3>模拟输出</h3>
+          <p>FPGA 发送的数字数据经高速 DAC 转换为模拟波形输出。</p>
+        </article>
+        <article class="point">
+          <small>Clock</small>
+          <h3>时钟与同步</h3>
+          <p>低抖动时钟为 ADC、DAC 和 JESD 链路提供统一的采样与同步基础。</p>
+        </article>
+        <article class="point interface-card">
+          <small>Interface</small>
+          <h3>FPGA 接口</h3>
+          <div class="link-pair" aria-label="接口分工">
+            <span class="link-pill jesd">
+              <b>JESD204B</b>
+              <em>高速数据链路</em>
+            </span>
+            <span class="link-pill spi">
+              <b>SPI</b>
+              <em>配置控制链路</em>
+            </span>
+          </div>
+          <p>高速采样数据和寄存器配置分开传输，数据通道与控制通道各司其职。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="workflow">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">System Workflow</p>
+          <h2>总体工作架构</h2>
+        </div>
+        <p class="section-copy">
+          系统工作流程以 FPGA 为核心展开：先建立稳定时钟，再配置各个芯片，随后同步高速链路，最终完成采集、输出和回环验证。
+          该流程体现的是板级系统的启动顺序和功能分层。
+        </p>
+      </div>
+
+      <div class="workflow" aria-label="总体工作流程">
+        <article class="step">
+          <b>1</b>
+          <h3>上电复位</h3>
+          <p>系统进入初始状态，等待主时钟和板级电源稳定。</p>
+        </article>
+        <article class="step">
+          <b>2</b>
+          <h3>时钟建立</h3>
+          <p>时钟芯片输出采样时钟、器件时钟和同步参考信号。</p>
+        </article>
+        <article class="step">
+          <b>3</b>
+          <h3>芯片配置</h3>
+          <p>FPGA 通过 SPI 配置时钟、ADC 和 DAC 的工作模式。</p>
+        </article>
+        <article class="step">
+          <b>4</b>
+          <h3>链路同步</h3>
+          <p>ADC/DAC 与 FPGA 之间建立 JESD204B 高速串行通道。</p>
+        </article>
+        <article class="step">
+          <b>5</b>
+          <h3>采集与输出</h3>
+          <p>ADC 数据进入 FPGA，DAC 接收数据并生成模拟输出。</p>
+        </article>
+        <article class="step">
+          <b>6</b>
+          <h3>状态验证</h3>
+          <p>通过读回、状态信号和回环链路判断系统是否正常工作。</p>
+        </article>
+      </div>
+    </section>
+
+    <footer class="closing">
+      <p>硬件设计页面将进一步展开时钟、AD、DA、电源和接口等板级模块。</p>
+      <a class="back-button" href="index.html">返回封面</a>
+    </footer>
+  </main>
+</body>
+</html>
