@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>软件设计 | ADDA 高速采集子卡</title>
+  <style>
+    :root {
+      --ink: #f7fbff;
+      --text: rgba(247, 251, 255, 0.84);
+      --muted: rgba(247, 251, 255, 0.66);
+      --soft: rgba(247, 251, 255, 0.48);
+      --cyan: #64d2ff;
+      --blue: #0a84ff;
+      --gold: #ffd166;
+      --green: #67e8a5;
+      --orange: #ff9f45;
+      --line: rgba(255, 255, 255, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #020408;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      z-index: -2;
+      background:
+        radial-gradient(ellipse at 78% 12%, rgba(10, 132, 255, 0.28), transparent 35%),
+        radial-gradient(ellipse at 18% 78%, rgba(255, 209, 102, 0.13), transparent 32%),
+        radial-gradient(ellipse at 48% 38%, rgba(103, 232, 165, 0.08), transparent 34%),
+        linear-gradient(145deg, #000 0%, #06101d 48%, #000 100%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,0.032) 1px, transparent 1px);
+      background-size: 76px 76px;
+      opacity: 0.32;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      width: min(100%, 1180px);
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 50px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(247, 251, 255, 0.86);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .mark {
+      width: 30px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 50%;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .mark::before {
+      inset: 8px;
+      border: 1px solid rgba(100, 210, 255, 0.68);
+    }
+
+    .mark::after {
+      inset: 14px;
+      background: var(--gold);
+      box-shadow: 0 0 16px rgba(255, 209, 102, 0.62);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 13px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(247, 251, 255, 0.76);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 650;
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      border-color: rgba(100, 210, 255, 0.46);
+      background: rgba(10, 132, 255, 0.13);
+      color: #fff;
+      outline: none;
+    }
+
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(320px, .86fr) minmax(280px, .44fr);
+      gap: clamp(22px, 5vw, 62px);
+      align-items: end;
+      padding-block: clamp(34px, 6vw, 70px) clamp(26px, 5vw, 50px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--cyan);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 820px;
+      color: #fff;
+      font-size: clamp(34px, 5.2vw, 60px);
+      line-height: 1.16;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .lead {
+      margin: 22px 0 0;
+      max-width: 900px;
+      color: var(--text);
+      font-size: clamp(17px, 1.55vw, 21px);
+      line-height: 1.78;
+      font-weight: 520;
+    }
+
+    .hero-panel {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035));
+      padding: 18px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+    }
+
+    .hero-panel strong {
+      display: block;
+      color: #fff;
+      font-size: 28px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .hero-panel span {
+      display: block;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .section-nav {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      padding-block: 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-nav a {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      border: 1px solid rgba(100, 210, 255, 0.18);
+      background: rgba(255, 255, 255, 0.052);
+      color: rgba(247, 251, 255, 0.78);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .section {
+      padding-block: clamp(46px, 7vw, 84px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(250px, .35fr) minmax(320px, .65fr);
+      gap: clamp(24px, 4vw, 54px);
+      align-items: start;
+      margin-bottom: clamp(24px, 4vw, 42px);
+    }
+
+    .section-index {
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 10px 0 0;
+      color: #fff;
+      font-size: clamp(28px, 3.4vw, 44px);
+      line-height: 1.18;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    h3 {
+      margin: 0;
+      color: #fff;
+      font-size: 21px;
+      line-height: 1.34;
+      letter-spacing: 0;
+    }
+
+    .section-copy {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(16px, 1.25vw, 19px);
+      line-height: 1.86;
+    }
+
+    .card {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.032));
+      padding: 20px;
+      box-shadow: 0 22px 64px rgba(0, 0, 0, 0.25);
+    }
+
+    .card small {
+      display: inline-flex;
+      margin-bottom: 12px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .card p,
+    figcaption,
+    .plain-list li,
+    .step p,
+    .status-pill span {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.74;
+    }
+
+    .card p {
+      margin: 12px 0 0;
+    }
+
+    figure {
+      margin: 0;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.045);
+      overflow: hidden;
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    figcaption {
+      padding: 13px 15px 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .tics-figure img {
+      aspect-ratio: 16 / 9;
+      object-fit: contain;
+    }
+
+    .config-side {
+      display: grid;
+      gap: 14px;
+      align-content: stretch;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .flow-node {
+      min-height: 96px;
+      position: relative;
+      padding: 16px;
+      border: 1px solid rgba(100, 210, 255, 0.18);
+      background: rgba(10, 132, 255, 0.075);
+    }
+
+    .flow-node::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -8px;
+      width: 14px;
+      height: 1px;
+      background: rgba(100, 210, 255, 0.55);
+    }
+
+    .flow-node:last-child::after {
+      display: none;
+    }
+
+    .flow-node b {
+      display: block;
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .flow-node span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.052);
+    }
+
+    .stat strong {
+      display: block;
+      color: #fff;
+      font-size: 26px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .spi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .device-card {
+      min-height: 248px;
+      display: grid;
+      align-content: space-between;
+      border-top: 3px solid rgba(100, 210, 255, 0.62);
+    }
+
+    .device-card:nth-child(2) {
+      border-top-color: rgba(103, 232, 165, 0.72);
+    }
+
+    .device-card:nth-child(3) {
+      border-top-color: rgba(255, 209, 102, 0.8);
+    }
+
+    .plain-list {
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .plain-list li {
+      position: relative;
+      padding-left: 18px;
+      margin-top: 8px;
+    }
+
+    .plain-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .78em;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 14px rgba(100, 210, 255, 0.65);
+    }
+
+    .logic-strip {
+      display: grid;
+      grid-template-columns: .85fr 1fr .85fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .logic-box {
+      min-height: 128px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      background: linear-gradient(155deg, rgba(100, 210, 255, 0.1), rgba(255,255,255,0.035));
+    }
+
+    .logic-box.mid {
+      background: linear-gradient(155deg, rgba(103, 232, 165, 0.11), rgba(255,255,255,0.035));
+    }
+
+    .logic-box.last {
+      background: linear-gradient(155deg, rgba(255, 209, 102, 0.11), rgba(255,255,255,0.035));
+    }
+
+    .logic-box b {
+      display: block;
+      color: #fff;
+      margin-bottom: 10px;
+      font-size: 17px;
+    }
+
+    .logic-box span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+      counter-reset: step;
+    }
+
+    .step {
+      position: relative;
+      min-height: 190px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.047);
+      counter-increment: step;
+    }
+
+    .step::before {
+      content: counter(step, decimal-leading-zero);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 24px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(100, 210, 255, 0.28);
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .step b {
+      display: block;
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.35;
+      margin-bottom: 10px;
+    }
+
+    .step p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .path-panel {
+      display: grid;
+      grid-template-columns: minmax(0, .86fr) minmax(300px, .54fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .data-map {
+      min-height: 360px;
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background:
+        linear-gradient(135deg, rgba(10, 132, 255, 0.13), transparent 45%),
+        rgba(255,255,255,0.045);
+    }
+
+    .lane-row {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-top: 18px;
+    }
+
+    .chip {
+      min-height: 110px;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(0, 0, 0, 0.18);
+      color: #fff;
+      text-align: center;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .lane-bus {
+      position: relative;
+      min-height: 110px;
+      display: grid;
+      align-content: center;
+      gap: 8px;
+    }
+
+    .lane-bus span {
+      display: block;
+      height: 5px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(100,210,255,0.22), rgba(100,210,255,0.95), rgba(255,209,102,0.8));
+      box-shadow: 0 0 18px rgba(100, 210, 255, 0.18);
+    }
+
+    .lane-note {
+      margin: 20px 0 0;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .lane-note div {
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .lane-note b {
+      display: block;
+      color: #fff;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
+    .lane-note span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .monitor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .debug-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 350px));
+      gap: 14px;
+      align-items: start;
+      justify-content: center;
+    }
+
+    .debug-grid figure img {
+      aspect-ratio: 4 / 3;
+      object-fit: contain;
+    }
+
+    .debug-grid figure:nth-child(-n+2) {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .debug-grid figure:nth-child(-n+2) img {
+      width: calc(100% - 32px);
+      max-height: 270px;
+      margin: 0 auto;
+      object-position: center;
+    }
+
+    .debug-grid figure:nth-child(3) {
+      grid-column: 1 / -1;
+    }
+
+    .debug-grid figure:nth-child(3) img {
+      aspect-ratio: 16 / 7;
+    }
+
+    .flag-panel {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background:
+        linear-gradient(155deg, rgba(10, 132, 255, 0.11), transparent 42%),
+        rgba(255, 255, 255, 0.045);
+      padding: 20px;
+      margin-top: 16px;
+      box-shadow: 0 22px 64px rgba(0, 0, 0, 0.25);
+    }
+
+    .flag-panel h3 {
+      margin-bottom: 8px;
+    }
+
+    .flag-intro {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.72;
+    }
+
+    .flag-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+    }
+
+    .flag-table th,
+    .flag-table td {
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .flag-table th {
+      color: #fff;
+      background: rgba(100, 210, 255, 0.09);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .flag-table td {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.62;
+      background: rgba(255, 255, 255, 0.032);
+    }
+
+    .flag-table td:first-child {
+      width: 34%;
+      color: #fff;
+      font-weight: 800;
+      word-break: break-word;
+    }
+
+    .status-board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .status-pill {
+      min-height: 118px;
+      padding: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .status-pill b {
+      display: block;
+      color: #fff;
+      margin-bottom: 7px;
+      font-size: 15px;
+    }
+
+    .status-pill span {
+      display: block;
+      font-size: 13px;
+    }
+
+    .closing {
+      padding-block: clamp(32px, 5vw, 56px) 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .closing p {
+      margin: 0;
+      max-width: 780px;
+      color: var(--text);
+      font-size: 17px;
+      line-height: 1.8;
+    }
+
+    .back-button {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      border: 1px solid rgba(255, 209, 102, 0.36);
+      background: rgba(255, 209, 102, 0.09);
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 980px) {
+      .intro,
+      .section-head,
+      .config-grid,
+      .path-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .section-nav,
+      .flow-row,
+      .spi-grid,
+      .timeline,
+      .status-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .logic-strip,
+      .debug-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .debug-grid figure:nth-child(3) {
+        grid-column: auto;
+      }
+
+      .flag-table td:first-child {
+        width: 40%;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .section-nav,
+      .flow-row,
+      .stat-grid,
+      .timeline,
+      .lane-row,
+      .lane-note,
+      .monitor-grid,
+      .status-board {
+        grid-template-columns: 1fr;
+      }
+
+      .logic-strip {
+        gap: 10px;
+      }
+
+      .section {
+        padding-block: 38px;
+      }
+
+      .flag-table th,
+      .flag-table td {
+        padding: 10px;
+        font-size: 13px;
+      }
+
+      .flag-table td:first-child {
+        width: 42%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="mark" aria-hidden="true"></span>
+        <span>ADDA 高速采集子卡</span>
+      </a>
+      <nav class="nav" aria-label="页面导航">
+        <a href="index.html">首页</a>
+        <a href="architecture.html">总体架构</a>
+        <a href="problems.html">问题分析</a>
+        <a href="hardware.html">硬件设计</a>
+      </nav>
+    </header>
+
+    <section class="intro">
+      <div>
+        <p class="eyebrow">Software Design</p>
+        <h1>软件设计</h1>
+        <p class="lead">
+          软件部分承担板卡上电后的配置、校验、链路启动和在线观测。整个流程围绕 LMK04828、AD9695、AD9144 和 JESD204B 链路展开，由 FPGA 内部状态机完成自动初始化，并通过 ILA 与调试标志位判断板卡运行状态。
+        </p>
+      </div>
+      <div class="hero-panel">
+        <strong>FPGA</strong>
+        <span>寄存器写表、SPI 回读校验、JESD204B 接收与发送、AD 到 DA 回环验证共同构成软件设计主线。</span>
+      </div>
+    </section>
+
+    <nav class="section-nav" aria-label="软件设计目录">
+      <a href="#clock-config">时钟配置</a>
+      <a href="#spi">SPI 初始化</a>
+      <a href="#boot">上电流程</a>
+      <a href="#jesd">数据链路</a>
+      <a href="#debug">状态监测</a>
+    </nav>
+
+    <section class="section" id="clock-config">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Software 01</span>
+          <h2>TICS PRO 时钟配置</h2>
+        </div>
+        <p class="section-copy">
+          LMK04828 的参数先在 TICS PRO 中完成规划，再整理为寄存器表写入 FPGA 工程。这样板卡上电后无需外部手动配置，FPGA 会按照固定时序完成 LMK 复位、SPI 写表、同步脉冲和关键寄存器回读。
+        </p>
+      </div>
+
+      <div class="config-grid">
+        <figure class="tics-figure">
+          <img src="assets/TICSPRO配置.png" alt="TICS PRO 时钟芯片配置界面">
+          <figcaption>TICS PRO 配置：确定 LMK04828 的 PLL、输出频率、SYSREF 与各路时钟关系。</figcaption>
+        </figure>
+        <div class="config-side">
+          <article class="card">
+            <small>Clock Plan</small>
+            <h3>从参数到可下载配置</h3>
+            <p>时钟方案不只停留在工具界面，而是转化为 FPGA 可执行的寄存器写表；上电后由硬件逻辑按顺序写入 LMK04828，保证每次启动的一致性。</p>
+          </article>
+          <div class="stat-grid">
+            <div class="stat">
+              <strong>136</strong>
+              <span>LMK 寄存器写入项</span>
+            </div>
+            <div class="stat">
+              <strong>11</strong>
+              <span>关键寄存器回读校验项</span>
+            </div>
+            <div class="stat">
+              <strong>500k</strong>
+              <span>LMK SPI 约 500 kHz</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-row" aria-label="TICS PRO 到板上时钟输出流程">
+        <div class="flow-node">
+          <b>参数生成</b>
+          <span>在 TICS PRO 中完成 PLL、分频和 SYSREF 设置。</span>
+        </div>
+        <div class="flow-node">
+          <b>寄存器写表</b>
+          <span>将配置整理为固定顺序的 LMK 写入表。</span>
+        </div>
+        <div class="flow-node">
+          <b>FPGA 写入</b>
+          <span>上电后通过三线 SPI 自动写入并执行 SYNC。</span>
+        </div>
+        <div class="flow-node">
+          <b>回读确认</b>
+          <span>读取关键寄存器和 PLL 锁定状态，确认时钟稳定。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="spi">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Software 02</span>
+          <h2>表驱动 SPI 初始化框架</h2>
+        </div>
+        <p class="section-copy">
+          板上器件数量多、初始化顺序严格，因此工程采用“表项 + 状态机”的方式管理配置流程。每个表项包含写寄存器、读回校验或延时等待，FPGA 根据当前阶段选择目标芯片并执行相应操作。
+        </p>
+      </div>
+
+      <div class="spi-grid">
+        <article class="card device-card">
+          <div>
+            <small>LMK04828</small>
+            <h3>时钟芯片配置</h3>
+            <p>24 bit SPI 帧格式完成寄存器访问，写表结束后插入等待和 SYNC 脉冲，再读取 PLL 锁定与配置一致性。</p>
+          </div>
+          <ul class="plain-list">
+            <li>复位高 20 ms、复位低 50 ms</li>
+            <li>写表完成后等待时钟稳定</li>
+            <li>观察 PLL1、PLL2 锁定标志</li>
+          </ul>
+        </article>
+
+        <article class="card device-card">
+          <div>
+            <small>AD9695 × 2</small>
+            <h3>ADC 分阶段配置</h3>
+            <p>两片 ADC 分别进入测试模式与正常工作模式。测试阶段用于验证 JESD 接收链路，正常阶段用于后续采集与回环。</p>
+          </div>
+          <ul class="plain-list">
+            <li>ADC1 测试配置</li>
+            <li>ADC2 测试配置</li>
+            <li>切换至正常采样模式</li>
+          </ul>
+        </article>
+
+        <article class="card device-card">
+          <div>
+            <small>AD9144</small>
+            <h3>DAC 与发送链路配置</h3>
+            <p>DAC 采用独立读回线完成四线 SPI 校验，同时读取 PLL、JESD 同步和错误状态，作为发送链路启动依据。</p>
+          </div>
+          <ul class="plain-list">
+            <li>DAC 寄存器表写入</li>
+            <li>PLL 与 JESD 状态回读</li>
+            <li>满足条件后启动 TX 数据发送</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="logic-strip" aria-label="SPI 配置逻辑结构">
+        <div class="logic-box">
+          <b>表项内容</b>
+          <span>操作类型、器件地址、写入值或期望值、校验掩码、延时参数共同描述一次配置动作。</span>
+        </div>
+        <div class="logic-box mid">
+          <b>状态机调度</b>
+          <span>LMK 配置完成后，依次推进 ADC 测试配置、DAC 配置、测试保持、ADC 正常配置。</span>
+        </div>
+        <div class="logic-box last">
+          <b>结果输出</b>
+          <span>完成标志、回读匹配、首次错误位置、PLL 锁定状态和 JESD ready 信号输出到调试系统。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="boot">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Software 03</span>
+          <h2>上电初始化流程</h2>
+        </div>
+        <p class="section-copy">
+          初始化流程按照“先时钟、再芯片、后链路”的原则推进。时钟未稳定时不启动 AD/DA 配置；AD/DA 未通过关键状态检查时，不把 JESD 链路作为有效工作状态使用。
+        </p>
+      </div>
+
+      <div class="timeline" aria-label="上电初始化流程">
+        <div class="step">
+          <b>系统复位</b>
+          <p>FPGA 接收系统时钟，内部复位释放后进入配置流程。</p>
+        </div>
+        <div class="step">
+          <b>LMK 写表</b>
+          <p>完成 LMK04828 复位、寄存器写入和时钟同步脉冲。</p>
+        </div>
+        <div class="step">
+          <b>时钟校验</b>
+          <p>回读关键寄存器，并检查 PLL1、PLL2 锁定状态。</p>
+        </div>
+        <div class="step">
+          <b>ADC 测试模式</b>
+          <p>两片 AD9695 输出测试序列，用于验证 JESD 接收。</p>
+        </div>
+        <div class="step">
+          <b>DAC 配置</b>
+          <p>初始化 AD9144，读取 PLL 与 JESD 相关状态位。</p>
+        </div>
+        <div class="step">
+          <b>ADC 正常模式</b>
+          <p>从测试序列切换至正常采集，为回环验证做准备。</p>
+        </div>
+        <div class="step">
+          <b>链路观测</b>
+          <p>通过 ILA 查看同步、有效数据、错误计数和回环样点。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="jesd">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Software 04</span>
+          <h2>JESD204B 与回环数据路径</h2>
+        </div>
+        <p class="section-copy">
+          AD9695 与 AD9144 之间的数据不经过外部处理器搬运，而是在 FPGA 内部完成接收、解包、监测、缓存和再发送。工程同时保留内部 NCO 测试源与 AD 到 DA 回环路径，便于分阶段验证 DAC 发送和完整闭环。
+        </p>
+      </div>
+
+      <div class="path-panel">
+        <div class="data-map">
+          <h3>AD → FPGA → DA 数据通路</h3>
+          <div class="lane-row">
+            <div class="chip">AD9695 × 2<br>4 lane / 片</div>
+            <div class="lane-bus" aria-label="8 lane JESD 接收链路">
+              <span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <div class="chip">FPGA JESD RX<br>解包与监测</div>
+          </div>
+          <div class="lane-row">
+            <div class="chip">格式转换<br>异步 FIFO</div>
+            <div class="lane-bus" aria-label="DAC JESD 发送链路">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <div class="chip">AD9144<br>JESD TX 输出</div>
+          </div>
+          <div class="lane-note">
+            <div>
+              <b>接收侧</b>
+              <span>每片 ADC 使用 4 条 JESD lane，两片共 8 条高速接收通道。</span>
+            </div>
+            <div>
+              <b>监测侧</b>
+              <span>测试模式下检查 Ramp 样点是否连续递增，快速判断链路是否跑通。</span>
+            </div>
+            <div>
+              <b>发送侧</b>
+              <span>将 14 bit ADC 样点转换为 16 bit DAC 数据，并送入 AD9144。</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="monitor-grid">
+          <article class="card">
+            <small>RX Monitor</small>
+            <h3>ADC 数据监测</h3>
+            <p>接收端从 64 bit JESD payload 中解析多路 14 bit 样点，输出 pass、fail、error_count 和 last_sample，方便判断 ADC 测试码是否稳定。</p>
+          </article>
+          <article class="card">
+            <small>TX Source</small>
+            <h3>DAC 发送源</h3>
+            <p>发送端既可使用 FPGA 内部 NCO 产生正交测试波形，也可使用 ADC 回环数据验证采集、搬运和回放链路。</p>
+          </article>
+          <article class="card">
+            <small>Clock Domain</small>
+            <h3>跨时钟缓存</h3>
+            <p>ADC 接收用户时钟与 DAC 发送用户时钟不同，回环路径通过异步 FIFO 缓冲，降低跨时钟域带来的不确定性。</p>
+          </article>
+          <article class="card">
+            <small>Status Gate</small>
+            <h3>状态门控</h3>
+            <p>DAC TX 的启动依赖配置完成、PLL 锁定、同步状态和 tready 等条件，避免在链路未准备好时输出无效数据。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="debug">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Software 05</span>
+          <h2>调试与状态监测</h2>
+        </div>
+        <p class="section-copy">
+          调试设计把关键状态集中接入 ILA：时钟 PLL 是否锁定、SPI 写表是否完成、回读是否匹配、JESD 是否同步、ADC 是否有有效数据、DAC 是否开始发送，都可以在 Vivado 中直接观察。
+        </p>
+      </div>
+
+      <div class="debug-grid">
+        <figure>
+          <img src="assets/pll锁定标志位.png" alt="PLL 锁定标志位">
+          <figcaption>PLL 锁定标志位：确认 LMK、ADC、DAC 相关时钟链路进入稳定状态。</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/ila标志位.png" alt="ILA 调试标志位">
+          <figcaption>ILA 标志位：集中观察 SPI 完成、JESD 同步、tvalid、错误计数等运行状态。</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/AD采到的数据和DA回环输出的数据.png" alt="AD 采集数据和 DA 回环输出数据">
+          <figcaption>AD 采集数据与 DA 回环输出数据：用于验证采集、FPGA 搬运和回放链路连通性。</figcaption>
+        </figure>
+      </div>
+
+      <aside class="flag-panel" aria-label="关键调试标志位说明">
+        <h3>关键标志位说明</h3>
+        <table class="flag-table">
+          <thead>
+            <tr>
+              <th>标志位</th>
+              <th>作用</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>dbg_pll1_locked / dbg_pll2_locked</td>
+              <td>表示 LMK04828 双环 PLL 已锁定，时钟链路进入稳定状态。</td>
+            </tr>
+            <tr>
+              <td>dbg_dac_pll_locked / dbg_dac_clk_pll_locked</td>
+              <td>表示 AD9144 内部 PLL 与 DAC 时钟 PLL 已锁定。</td>
+            </tr>
+            <tr>
+              <td>dbg_ad_spi_done / dbg_ad_spi_all_match</td>
+              <td>表示 AD/DA 的 SPI 配置完成，并通过关键寄存器回读校验。</td>
+            </tr>
+            <tr>
+              <td>dbg_ad_spi_mismatch_count</td>
+              <td>记录 SPI 回读不一致次数，正常调试时应保持为 0。</td>
+            </tr>
+            <tr>
+              <td>dbg_dclkout8_present / dbg_sdclkout9_present</td>
+              <td>表示 FPGA 已检测到 LMK 输出时钟送入。</td>
+            </tr>
+            <tr>
+              <td>dbg_jesd_test_ready / dbg_jesd_normal_ready</td>
+              <td>表示 JESD 链路处于测试模式或正常采样模式的验证窗口。</td>
+            </tr>
+            <tr>
+              <td>dbg_adc*_rx_tvalid / dbg_dac_tx_tready</td>
+              <td>表示 ADC 接收端有有效数据，DAC 发送端可以接收数据。</td>
+            </tr>
+            <tr>
+              <td>dbg_dac_loop_sample_i / dbg_dac_loop_sample_q</td>
+              <td>显示回环送入 DAC 的 I/Q 样点，用于观察数据搬运是否正常。</td>
+            </tr>
+          </tbody>
+        </table>
+      </aside>
+
+      <div class="status-board" aria-label="主要调试观察项">
+        <div class="status-pill">
+          <b>配置完成</b>
+          <span>LMK、AD、DA 的 done 信号用于判断初始化流程是否走完。</span>
+        </div>
+        <div class="status-pill">
+          <b>回读匹配</b>
+          <span>mismatch_count 与 first_mismatch 帮助定位寄存器配置异常。</span>
+        </div>
+        <div class="status-pill">
+          <b>JESD 同步</b>
+          <span>sync、tvalid、reset_done 和 lane activity 判断高速链路状态。</span>
+        </div>
+        <div class="status-pill">
+          <b>回环样点</b>
+          <span>观察 ADC 样点与 DAC 输出样点，确认数据通路真实闭合。</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="closing">
+      <p>软件设计把配置、链路和调试闭合在同一套 FPGA 流程中，使板卡能够完成自动上电初始化，并为 AD/DA 回环验证提供清晰的状态观测入口。</p>
+      <a class="back-button" href="index.html">返回封面</a>
+    </footer>
+  </main>
+</body>
+</html>
