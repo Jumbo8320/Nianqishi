@@ -19,6 +19,10 @@
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     html,
     body {
       margin: 0;
@@ -31,8 +35,6 @@
 
     body {
       min-height: 100vh;
-      display: grid;
-      place-items: center;
       isolation: isolate;
     }
 
@@ -66,8 +68,9 @@
       width: min(100%, 1440px);
       min-height: 100vh;
       display: grid;
-      grid-template-rows: auto 1fr;
-      padding: clamp(22px, 4vw, 64px);
+      grid-template-rows: auto 1fr auto;
+      margin: 0 auto;
+      padding: clamp(22px, 4vw, 56px);
     }
 
     .scanline {
@@ -85,6 +88,7 @@
       align-items: center;
       justify-content: space-between;
       min-height: 32px;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--line);
     }
 
@@ -117,7 +121,7 @@
       margin: 0;
       max-width: 780px;
       color: var(--muted);
-      font-size: clamp(13px, 1.35vw, 18px);
+      font-size: clamp(13px, 1.25vw, 17px);
       line-height: 1.7;
       text-align: right;
       letter-spacing: 0;
@@ -126,10 +130,10 @@
     .hero {
       position: relative;
       display: grid;
-      grid-template-columns: minmax(320px, 0.82fr) minmax(360px, 1.18fr);
+      grid-template-columns: minmax(320px, 0.78fr) minmax(360px, 1.22fr);
       align-items: center;
       gap: clamp(20px, 5vw, 76px);
-      padding-block: clamp(24px, 5vw, 80px) clamp(32px, 6vw, 88px);
+      padding-block: clamp(20px, 4vw, 56px) clamp(12px, 3vw, 36px);
     }
 
     .copy {
@@ -139,9 +143,10 @@
 
     h1 {
       margin: 0;
-      max-width: 720px;
-      font-size: clamp(52px, 8.4vw, 122px);
-      line-height: 0.94;
+      max-width: 680px;
+      padding-bottom: 0.08em;
+      font-size: clamp(42px, 6.5vw, 88px);
+      line-height: 1.12;
       font-weight: 700;
       letter-spacing: 0;
       text-wrap: balance;
@@ -153,10 +158,10 @@
     }
 
     .subtitle {
-      margin: clamp(22px, 3vw, 34px) 0 0;
+      margin: clamp(18px, 2.4vw, 28px) 0 0;
       color: var(--ink);
-      font-size: clamp(24px, 3.2vw, 48px);
-      line-height: 1.12;
+      font-size: clamp(22px, 2.6vw, 38px);
+      line-height: 1.18;
       font-weight: 650;
       letter-spacing: 0;
       text-wrap: balance;
@@ -165,13 +170,13 @@
     .rule {
       width: min(340px, 72%);
       height: 1px;
-      margin-top: clamp(26px, 4vw, 52px);
+      margin-top: clamp(24px, 3.5vw, 44px);
       background: linear-gradient(90deg, var(--cyan), rgba(255, 255, 255, 0.1), transparent);
     }
 
     .visual {
       position: relative;
-      min-height: clamp(360px, 54vw, 760px);
+      min-height: clamp(320px, 48vw, 680px);
       display: grid;
       place-items: center;
       perspective: 1400px;
@@ -191,7 +196,7 @@
 
     .board-wrap {
       position: relative;
-      width: min(64vw, 900px);
+      width: min(60vw, 820px);
       max-width: 100%;
       transform-style: preserve-3d;
       animation: float 5.8s ease-in-out infinite;
@@ -220,24 +225,75 @@
     }
 
     .spec {
-      position: absolute;
-      right: clamp(0px, 2vw, 24px);
-      bottom: clamp(20px, 7vw, 86px);
-      width: min(430px, 48vw);
-      padding: 18px 20px;
+      width: max-content;
+      max-width: calc(100vw - clamp(44px, 8vw, 112px));
+      margin-top: clamp(22px, 3vw, 36px);
+      padding: 10px 18px;
       border: 1px solid rgba(255, 255, 255, 0.16);
       background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.035));
       backdrop-filter: blur(22px);
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
     }
 
     .spec p {
       margin: 0;
-      font-size: clamp(17px, 1.8vw, 26px);
-      font-weight: 650;
-      line-height: 1.35;
+      font-size: clamp(13px, 1.05vw, 16px);
+      font-weight: 600;
+      line-height: 1.2;
       letter-spacing: 0;
       color: #fff;
+      white-space: nowrap;
+    }
+
+    .catalog {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: clamp(18px, 3vw, 34px);
+      padding-top: clamp(16px, 3vw, 28px);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .catalog-title {
+      margin: 0;
+      color: rgba(247, 251, 255, 0.86);
+      font-size: clamp(16px, 1.6vw, 22px);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .catalog-button {
+      min-height: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 14px;
+      border: 1px solid rgba(100, 210, 255, 0.22);
+      color: var(--ink);
+      background: linear-gradient(135deg, rgba(255,255,255,0.115), rgba(255,255,255,0.035));
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
+      text-decoration: none;
+      font-size: clamp(14px, 1.15vw, 17px);
+      font-weight: 650;
+      letter-spacing: 0;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+
+    .catalog-button:hover,
+    .catalog-button:focus-visible {
+      border-color: rgba(255, 209, 102, 0.58);
+      background: linear-gradient(135deg, rgba(10,132,255,0.2), rgba(255,255,255,0.06));
+      box-shadow: 0 18px 46px rgba(10, 132, 255, 0.22);
+      transform: translateY(-2px);
+      outline: none;
     }
 
     .micro-entry {
@@ -336,6 +392,17 @@
       }
     }
 
+    @media (max-width: 1100px) {
+      .catalog {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .catalog-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
     @media (max-width: 900px) {
       .poster {
         padding: 18px;
@@ -355,25 +422,26 @@
         grid-template-columns: 1fr;
         align-content: start;
         gap: 8px;
-        padding-block: 46px 68px;
+        padding-block: 40px 28px;
       }
 
       h1 {
-        font-size: clamp(46px, 15vw, 76px);
+        font-size: clamp(42px, 12vw, 68px);
+        line-height: 1.08;
       }
 
       .subtitle {
-        font-size: clamp(22px, 7vw, 38px);
+        font-size: clamp(21px, 6vw, 34px);
       }
 
       .visual {
-        min-height: 390px;
+        min-height: 340px;
         margin-top: -12px;
       }
 
       .board-wrap {
-        width: min(112vw, 760px);
-        margin-left: -10vw;
+        width: min(108vw, 720px);
+        margin-left: -8vw;
       }
 
       .halo {
@@ -381,10 +449,19 @@
       }
 
       .spec {
-        right: 0;
-        bottom: 0;
-        width: min(360px, 78vw);
-        padding: 14px 16px;
+        width: max-content;
+        max-width: 100%;
+        padding: 9px 14px;
+      }
+
+      .spec p {
+        font-size: clamp(9px, 2.4vw, 14px);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .catalog-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
@@ -404,11 +481,15 @@
       }
 
       .visual {
-        min-height: 330px;
+        min-height: 300px;
       }
 
       .spec {
         width: calc(100vw - 36px);
+      }
+
+      .catalog-button {
+        min-height: 46px;
       }
     }
   </style>
@@ -424,24 +505,39 @@
     <section class="hero" aria-label="信号处理系统项目实训">
       <div class="copy">
         <h1>信号处理系统项目实训</h1>
-        <p class="subtitle">ADDA高速采集子卡（4路AD，4路DA）</p>
+        <p class="subtitle">ADDA 高速采集子卡<br>4 路 AD / 4 路 DA</p>
         <div class="rule" aria-hidden="true"></div>
+        <div class="spec">
+          <p>高速采集·低抖动时钟·FPGA硬件spi配置·ADDA回环验证</p>
+        </div>
       </div>
 
       <div class="visual" aria-hidden="true">
         <div class="halo"></div>
         <div class="board-wrap">
-          <img class="board" src="c19ad33b313f6ef069a48b53900336ef.png" alt="">
+          <img class="board" src="assets\3d高清图.png" alt="">
         </div>
       </div>
     </section>
+
+    <nav class="catalog" aria-label="项目目录">
+      <p class="catalog-title">项目目录</p>
+      <div class="catalog-grid">
+        <a class="catalog-button" href="#intro">项目简介</a>
+        <a class="catalog-button" href="#architecture">总体架构</a>
+        <a class="catalog-button" href="#problems">问题分析</a>
+        <a class="catalog-button" href="#hardware">硬件设计</a>
+        <a class="catalog-button" href="#software">软件设计</a>
+        <a class="catalog-button" href="#test">测试结果</a>
+      </div>
+    </nav>
   </main>
 
   <button class="micro-entry" type="button" aria-label="nianqishi"></button>
   <aside class="drawer" id="nianqishi" aria-hidden="true">
     <div class="drawer-header">
       <h2>nianqishi</h2>
-      <button class="close" type="button" aria-label="close">×</button>
+      <button class="close" type="button" aria-label="close">x</button>
     </div>
     <audio controls preload="metadata" src="audio.mp3"></audio>
   </aside>
