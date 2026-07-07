@@ -1451,6 +1451,25 @@
 
       <article class="opt-block">
         <div class="opt-copy">
+          <h3>AD 通道等长布线</h3>
+          <p>
+            初版 4 路 AD 通道之间存在信号线长度不一致的问题，容易带来通道间到达时间差，影响多路采集同步。团队重新调整关键网络走线，使各路 AD 数据链路满足等长要求，提升多通道同步一致性。
+          </p>
+        </div>
+        <div class="opt-media-grid">
+          <figure>
+            <img src="assets/等长1.png" alt="AD 通道等长布线网络 1">
+            <figcaption>等长网络 1：通过蛇形补偿和走线重排，使同组关键网络长度保持一致。</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/等长2.png" alt="AD 通道等长布线网络 2">
+            <figcaption>等长网络 2：对另一组 AD 数据链路进行长度匹配，保障多通道同步。</figcaption>
+          </figure>
+        </div>
+      </article>
+
+      <article class="opt-block">
+        <div class="opt-copy">
           <h3>散热结构设计</h3>
           <p>
             子板运行时局部发热明显，团队针对主要热源设计散热片安装位置，并使用 SolidWorks 完成散热片结构建模，再联系商家定制实物。散热片通过定位孔与板卡结构配合，提升长时间运行时的热稳定性。
@@ -1468,6 +1487,44 @@
           <figure>
             <img src="assets/散热片实物.png" alt="散热片实物">
             <figcaption>定制实物：根据设计尺寸加工散热片并用于板卡装配。</figcaption>
+          </figure>
+        </div>
+      </article>
+
+      <article class="opt-block">
+        <div class="opt-copy">
+          <h3>DAC 高速链路扩展</h3>
+          <p>
+            初版 DAC 侧采用 4 lane 高速串行链路，数据吞吐能力和链路裕量有限。优化后将 DAC 通信链路扩展为 8 lane，提高 FPGA 到 DA 方向的数据传输能力，为更高采样率和更复杂波形输出预留余量。
+          </p>
+        </div>
+        <div class="opt-media-grid">
+          <figure>
+            <img src="assets/4lane.png" alt="DAC 4 lane 链路">
+            <figcaption>优化前：DAC 侧采用 4 lane 高速通信链路。</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/8lane.png" alt="DAC 8 lane 链路">
+            <figcaption>优化后：DAC 侧扩展为 8 lane，提高 FPGA 到 DA 的传输能力。</figcaption>
+          </figure>
+        </div>
+      </article>
+
+      <article class="opt-block">
+        <div class="opt-copy">
+          <h3>SPI 电平转换芯片更换</h3>
+          <p>
+            初版使用的 SN74AVC1T45DBVR 需要额外方向控制信号来切换 SPI 数据方向，若方向时序处理不当，可能导致读写双方同时驱动数据线。优化后更换为 TXS0101DBVR，芯片可自动识别并切换传输方向，降低 SPI 读回时的数据冲突风险。
+          </p>
+        </div>
+        <div class="opt-media-grid">
+          <figure>
+            <img src="assets/换芯片前.png" alt="SPI 电平转换芯片更换前">
+            <figcaption>更换前：SN74AVC1T45DBVR 依赖方向控制，SPI 双向数据线存在冲突风险。</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/换芯片后.png" alt="SPI 电平转换芯片更换后">
+            <figcaption>更换后：TXS0101DBVR 支持自动方向切换，更适合 SPI 双向数据读写。</figcaption>
           </figure>
         </div>
       </article>
