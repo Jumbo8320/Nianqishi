@@ -533,6 +533,10 @@
       box-shadow: 0 18px 42px rgba(10, 132, 255, 0.28), inset 0 0 22px rgba(100, 210, 255, 0.22);
       cursor: grab;
       pointer-events: auto;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
       font-size: 16px;
       font-weight: 900;
       letter-spacing: .04em;
@@ -816,6 +820,8 @@
         const rect = shell.getBoundingClientRect();
         isDragging = true;
         didMove = false;
+        shell.style.transition = "none";
+        shell.style.willChange = "left, top";
         startX = event.clientX;
         startY = event.clientY;
         startLeft = rect.left;
@@ -837,6 +843,7 @@
       button.addEventListener("pointerup", (event) => {
         if (!isDragging) return;
         isDragging = false;
+        shell.style.willChange = "";
         try { button.releasePointerCapture(event.pointerId); } catch {}
         const rect = shell.getBoundingClientRect();
         if (didMove) {
