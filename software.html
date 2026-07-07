@@ -875,7 +875,7 @@
         linear-gradient(145deg, rgba(10, 132, 255, 0.86), rgba(3, 18, 38, 0.92));
       color: #fff;
       box-shadow: 0 18px 42px rgba(10, 132, 255, 0.28), inset 0 0 22px rgba(100, 210, 255, 0.22);
-      cursor: pointer;
+      cursor: grab;
       pointer-events: auto;
       font-size: 16px;
       font-weight: 900;
@@ -889,6 +889,10 @@
       border-color: rgba(255, 209, 102, 0.7);
       box-shadow: 0 20px 54px rgba(10, 132, 255, 0.38), inset 0 0 24px rgba(255, 209, 102, 0.18);
       outline: none;
+    }
+
+    .site-orb-button:active {
+      cursor: grabbing;
     }
 
     .site-orb-menu {
@@ -1361,6 +1365,13 @@
       const button = document.querySelector(".site-orb-button");
       const backdrop = document.querySelector(".site-orb-backdrop");
       if (!shell || !button || !backdrop) return;
+      const storageKey = "adda-site-orb-position";
+      let isDragging = false;
+      let didMove = false;
+      let startX = 0;
+      let startY = 0;
+      let startLeft = 0;
+      let startTop = 0;
 
       const setOpen = (open) => {
         shell.classList.toggle("is-open", open);
@@ -1368,10 +1379,81 @@
         button.setAttribute("aria-expanded", String(open));
       };
 
-      button.addEventListener("click", () => setOpen(!shell.classList.contains("is-open")));
+      const clampPosition = (left, top) => {
+        const maxLeft = Math.max(0, window.innerWidth - shell.offsetWidth);
+        const maxTop = Math.max(0, window.innerHeight - shell.offsetHeight);
+        return {
+          left: Math.min(Math.max(0, left), maxLeft),
+          top: Math.min(Math.max(0, top), maxTop)
+        };
+      };
+
+      const applyPosition = (left, top) => {
+        const pos = clampPosition(left, top);
+        shell.style.left = `${pos.left}px`;
+        shell.style.top = `${pos.top}px`;
+        shell.style.right = "auto";
+        shell.style.transform = "none";
+        return pos;
+      };
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+        if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
+          applyPosition(saved.left, saved.top);
+        }
+      } catch {}
+
+      button.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        const rect = shell.getBoundingClientRect();
+        isDragging = true;
+        didMove = false;
+        startX = event.clientX;
+        startY = event.clientY;
+        startLeft = rect.left;
+        startTop = rect.top;
+        button.setPointerCapture(event.pointerId);
+      });
+
+      button.addEventListener("pointermove", (event) => {
+        if (!isDragging) return;
+        const dx = event.clientX - startX;
+        const dy = event.clientY - startY;
+        if (Math.abs(dx) + Math.abs(dy) > 4) didMove = true;
+        if (didMove) {
+          setOpen(false);
+          applyPosition(startLeft + dx, startTop + dy);
+        }
+      });
+
+      button.addEventListener("pointerup", (event) => {
+        if (!isDragging) return;
+        isDragging = false;
+        try { button.releasePointerCapture(event.pointerId); } catch {}
+        const rect = shell.getBoundingClientRect();
+        if (didMove) {
+          localStorage.setItem(storageKey, JSON.stringify({ left: rect.left, top: rect.top }));
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+
+      button.addEventListener("click", () => {
+        if (didMove) {
+          didMove = false;
+          return;
+        }
+        setOpen(!shell.classList.contains("is-open"));
+      });
       backdrop.addEventListener("click", () => setOpen(false));
       window.addEventListener("keydown", (event) => {
         if (event.key === "Escape") setOpen(false);
+      });
+      window.addEventListener("resize", () => {
+        const rect = shell.getBoundingClientRect();
+        const pos = applyPosition(rect.left, rect.top);
+        localStorage.setItem(storageKey, JSON.stringify(pos));
       });
     })();
   </script>
