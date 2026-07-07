@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>测试结果 | ADDA 高速采集子卡</title>
+  <style>
+    :root {
+      --ink: #f7fbff;
+      --text: rgba(247, 251, 255, 0.84);
+      --muted: rgba(247, 251, 255, 0.66);
+      --cyan: #64d2ff;
+      --blue: #0a84ff;
+      --gold: #ffd166;
+      --green: #67e8a5;
+      --line: rgba(255, 255, 255, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #020408;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      z-index: -2;
+      background:
+        radial-gradient(ellipse at 78% 12%, rgba(10, 132, 255, 0.28), transparent 35%),
+        radial-gradient(ellipse at 18% 78%, rgba(255, 209, 102, 0.13), transparent 32%),
+        radial-gradient(ellipse at 52% 42%, rgba(103, 232, 165, 0.08), transparent 34%),
+        linear-gradient(145deg, #000 0%, #06101d 48%, #000 100%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,0.032) 1px, transparent 1px);
+      background-size: 76px 76px;
+      opacity: 0.32;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      width: min(100%, 1180px);
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 50px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(247, 251, 255, 0.86);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .mark {
+      width: 30px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 50%;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .mark::before {
+      inset: 8px;
+      border: 1px solid rgba(100, 210, 255, 0.68);
+    }
+
+    .mark::after {
+      inset: 14px;
+      background: var(--gold);
+      box-shadow: 0 0 16px rgba(255, 209, 102, 0.62);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 13px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(247, 251, 255, 0.76);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 650;
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      border-color: rgba(100, 210, 255, 0.46);
+      background: rgba(10, 132, 255, 0.13);
+      color: #fff;
+      outline: none;
+    }
+
+    .intro {
+      padding-block: clamp(34px, 6vw, 70px) clamp(26px, 5vw, 50px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--cyan);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 820px;
+      color: #fff;
+      font-size: clamp(34px, 5.2vw, 60px);
+      line-height: 1.16;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .lead {
+      margin: 22px 0 0;
+      max-width: 910px;
+      color: var(--text);
+      font-size: clamp(17px, 1.55vw, 21px);
+      line-height: 1.78;
+      font-weight: 520;
+    }
+
+    .section-nav {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding-block: 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-nav a {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      border: 1px solid rgba(100, 210, 255, 0.18);
+      background: rgba(255, 255, 255, 0.052);
+      color: rgba(247, 251, 255, 0.78);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .section {
+      padding-block: clamp(46px, 7vw, 84px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(250px, .35fr) minmax(320px, .65fr);
+      gap: clamp(24px, 4vw, 54px);
+      align-items: start;
+      margin-bottom: clamp(24px, 4vw, 42px);
+    }
+
+    .section-index {
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 10px 0 0;
+      color: #fff;
+      font-size: clamp(28px, 3.4vw, 44px);
+      line-height: 1.18;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    h3 {
+      margin: 0;
+      color: #fff;
+      font-size: 21px;
+      line-height: 1.34;
+      letter-spacing: 0;
+    }
+
+    .section-copy {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(16px, 1.25vw, 19px);
+      line-height: 1.86;
+    }
+
+    .card {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.032));
+      padding: 20px;
+      box-shadow: 0 22px 64px rgba(0, 0, 0, 0.25);
+    }
+
+    .card small {
+      display: inline-flex;
+      margin-bottom: 12px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .card p,
+    figcaption,
+    .metric-note,
+    .slider-copy {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.74;
+    }
+
+    .card p {
+      margin: 12px 0 0;
+    }
+
+    figure {
+      margin: 0;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.045);
+      overflow: hidden;
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    figcaption {
+      padding: 13px 15px 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      align-items: start;
+    }
+
+    .result-grid figure img {
+      aspect-ratio: 16 / 9;
+      object-fit: contain;
+    }
+
+    .verify-strip,
+    .test-param-grid,
+    .metric-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .verify-strip {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 16px;
+    }
+
+    .test-param-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-bottom: 16px;
+    }
+
+    .mini-card {
+      min-height: 106px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .mini-card b {
+      display: block;
+      color: #fff;
+      font-size: 20px;
+      line-height: 1.1;
+      margin-bottom: 7px;
+    }
+
+    .mini-card span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .spectrum-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .overlay-figure,
+    .spectrum-viewer {
+      width: min(100%, 880px);
+      margin-inline: auto;
+    }
+
+    .spectrum-viewer {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background:
+        linear-gradient(155deg, rgba(10, 132, 255, 0.11), transparent 42%),
+        rgba(255, 255, 255, 0.045);
+      padding: 18px;
+      box-shadow: 0 22px 64px rgba(0, 0, 0, 0.25);
+    }
+
+    .viewer-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .freq-label {
+      color: #fff;
+      font-size: clamp(22px, 3vw, 34px);
+      font-weight: 850;
+      line-height: 1;
+    }
+
+    .freq-sub {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: right;
+    }
+
+    .spectrum-viewer img,
+    .overlay-figure img,
+    .metric-figure img {
+      aspect-ratio: 16 / 10;
+      object-fit: contain;
+    }
+
+    .spectrum-viewer img {
+      max-height: 560px;
+    }
+
+    .freq-range {
+      width: 100%;
+      margin: 14px 0 0;
+      accent-color: var(--cyan);
+    }
+
+    .metric-readout {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .readout {
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .readout b {
+      display: block;
+      color: #fff;
+      font-size: 18px;
+      line-height: 1.1;
+      margin-bottom: 5px;
+    }
+
+    .readout span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 14px;
+    }
+
+    .metric-figure img {
+      background: #fff;
+    }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+
+    .summary-table th,
+    .summary-table td {
+      padding: 12px 13px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .summary-table th {
+      color: #fff;
+      background: rgba(100, 210, 255, 0.09);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .summary-table td {
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.032);
+      font-size: 14px;
+      line-height: 1.62;
+    }
+
+    .closing {
+      padding-block: clamp(32px, 5vw, 56px) 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .closing p {
+      margin: 0;
+      max-width: 780px;
+      color: var(--text);
+      font-size: 17px;
+      line-height: 1.8;
+    }
+
+    .back-button {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      border: 1px solid rgba(255, 209, 102, 0.36);
+      background: rgba(255, 209, 102, 0.09);
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 980px) {
+      .section-head,
+      .spectrum-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .section-nav,
+      .test-param-grid,
+      .verify-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .section-nav,
+      .result-grid,
+      .test-param-grid,
+      .verify-strip,
+      .metric-grid,
+      .metric-readout {
+        grid-template-columns: 1fr;
+      }
+
+      .section {
+        padding-block: 38px;
+      }
+
+      .summary-table th,
+      .summary-table td {
+        padding: 10px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="mark" aria-hidden="true"></span>
+        <span>ADDA 高速采集子卡</span>
+      </a>
+      <nav class="nav" aria-label="页面导航">
+        <a href="index.html">首页</a>
+        <a href="hardware.html">硬件设计</a>
+        <a href="software.html">软件设计</a>
+      </nav>
+    </header>
+
+    <section class="intro">
+      <p class="eyebrow">Test Result</p>
+      <h1>测试结果</h1>
+      <p class="lead">
+        测试部分分为两层：首先验证 AD 采集、FPGA 搬运与 DA 输出是否形成闭环；随后对 ADC 原始采样数据做 FFT 后处理，观察不同输入频率下的 SNR、SFDR、SINAD、THD 和 ENOB 变化。
+      </p>
+    </section>
+
+    <nav class="section-nav" aria-label="测试结果目录">
+      <a href="#loopback">回环验证</a>
+      <a href="#adc-test">ADC 性能测试</a>
+      <a href="#spectrum">频谱分析</a>
+      <a href="#metrics">指标趋势</a>
+    </nav>
+
+    <section class="section" id="loopback">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Test 01</span>
+          <h2>AD/DA 回环验证</h2>
+        </div>
+        <p class="section-copy">
+          回环验证是整块板卡最关键的功能测试：ADC 采样数据先进入 FPGA，再由 FPGA 送往 DAC 输出。ILA 中能看到 ADC 数据被稳定读取，示波器端能看到 DAC 输出波形，说明采集、传输、处理和回放链路已经打通。
+        </p>
+      </div>
+
+      <div class="result-grid">
+        <figure>
+          <img src="assets/ADC效果.png" alt="ILA 中 ADC 数据读取结果">
+          <figcaption>ILA 中的 ADC 数据读取结果：用于确认 AD9695 经 JESD204B 送入 FPGA 的采样数据有效。</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/DAC效果.png" alt="DAC 输出示波器结果">
+          <figcaption>DAC 输出示波器结果：用于确认 FPGA 回环数据已经送入 AD9144 并转换为模拟输出。</figcaption>
+        </figure>
+      </div>
+
+      <div class="verify-strip" aria-label="回环验证结论">
+        <div class="mini-card">
+          <b>AD 采集有效</b>
+          <span>ILA 能观察到 ADC 原始采样数据，说明接收链路工作正常。</span>
+        </div>
+        <div class="mini-card">
+          <b>FPGA 搬运连通</b>
+          <span>采样数据经过 FPGA 内部路径送入 DAC 发送侧。</span>
+        </div>
+        <div class="mini-card">
+          <b>DA 输出可见</b>
+          <span>示波器端观察到输出波形，完成 AD 到 DA 的闭环验证。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="adc-test">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Test 02</span>
+          <h2>ADC 动态性能测试</h2>
+        </div>
+        <p class="section-copy">
+          ADC 性能测试使用 FPGA 内部 raw ADC ILA 抓取 JESD 接收数据，再由 MATLAB 脚本解包 64 bit payload 中的 14 bit ADC 样点并进行 FFT 分析。测试重点放在动态指标，不单独评价幅度。
+        </p>
+      </div>
+
+      <div class="test-param-grid">
+        <div class="mini-card">
+          <b>245.76 MSPS</b>
+          <span>ADC 等效采样率</span>
+        </div>
+        <div class="mini-card">
+          <b>8192</b>
+          <span>每次 ILA 抓取 beat 数</span>
+        </div>
+        <div class="mini-card">
+          <b>32768</b>
+          <span>解包后的 ADC 样点数</span>
+        </div>
+        <div class="mini-card">
+          <b>7.5 kHz</b>
+          <span>FFT 频率分辨率</span>
+        </div>
+        <div class="mini-card">
+          <b>1-80 MHz</b>
+          <span>输入频率测试范围</span>
+        </div>
+      </div>
+
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>频段</th>
+            <th>测试表现</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1 MHz - 10 MHz</td>
+            <td>SNR 接近 60 dB，ENOB 大于 9 bits，整体动态性能最好。</td>
+          </tr>
+          <tr>
+            <td>15 MHz - 35 MHz</td>
+            <td>性能开始下降，但仍较稳定，ENOB 约 8.3 - 8.8 bits。</td>
+          </tr>
+          <tr>
+            <td>40 MHz - 65 MHz</td>
+            <td>SFDR、SINAD、THD 均下降明显，是本次测试中需要重点关注的频段。</td>
+          </tr>
+          <tr>
+            <td>70 MHz - 80 MHz</td>
+            <td>SFDR 和 THD 有所回升，但 SNR 仍保持下降趋势。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section" id="spectrum">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Test 03</span>
+          <h2>频谱分析</h2>
+        </div>
+        <p class="section-copy">
+          频谱部分同时展示所有输入频点叠加结果和单频点结果。叠加图便于观察整体趋势，滑块图用于逐个查看每个输入频率下的主峰、杂散和噪声底。
+        </p>
+      </div>
+
+      <div class="spectrum-layout">
+        <figure class="overlay-figure">
+          <img src="pic/spectrum_overlay.png" alt="不同输入频率 ADC FFT 频谱叠加图">
+          <figcaption>全部频点频谱叠加：从 1 MHz 到 80 MHz 的 FFT 结果统一展示，便于观察频段间差异。</figcaption>
+        </figure>
+
+        <div class="spectrum-viewer">
+          <div class="viewer-top">
+            <div>
+              <div class="freq-label"><span id="freqLabel">1</span> MHz</div>
+              <div class="slider-copy">拖动滑块查看单个输入频率的频谱图。</div>
+            </div>
+            <div class="freq-sub">单频点<br>FFT 结果</div>
+          </div>
+          <img id="spectrumImage" src="pic/spectrum_1M.png" alt="单频点 ADC FFT 频谱图">
+          <input class="freq-range" id="freqSlider" type="range" min="0" max="16" step="1" value="0" aria-label="选择输入频率">
+          <div class="metric-readout">
+            <div class="readout">
+              <b id="snrValue">60.06 dB</b>
+              <span>SNR</span>
+            </div>
+            <div class="readout">
+              <b id="sfdrValue">66.73 dBc</b>
+              <span>SFDR</span>
+            </div>
+            <div class="readout">
+              <b id="enobValue">9.53 bits</b>
+              <span>ENOB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="metrics">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Test 04</span>
+          <h2>指标趋势</h2>
+        </div>
+        <p class="section-copy">
+          从指标曲线看，低频输入下采集链路表现最好；输入频率升高后，SNR、SINAD 和 ENOB 整体下降，55 MHz - 65 MHz 附近的杂散与失真表现最值得关注。
+        </p>
+      </div>
+
+      <div class="metric-grid">
+        <figure class="metric-figure">
+          <img src="pic/metric_snr.png" alt="SNR 随输入频率变化曲线">
+          <figcaption>SNR 趋势：低频段接近 60 dB，高频段逐步下降。</figcaption>
+        </figure>
+        <figure class="metric-figure">
+          <img src="pic/metric_sfdr.png" alt="SFDR 随输入频率变化曲线">
+          <figcaption>SFDR 趋势：1 MHz 最好，55 MHz - 65 MHz 附近最低。</figcaption>
+        </figure>
+        <figure class="metric-figure">
+          <img src="pic/metric_sinad.png" alt="SINAD 随输入频率变化曲线">
+          <figcaption>SINAD 趋势：随输入频率升高整体下降。</figcaption>
+        </figure>
+        <figure class="metric-figure">
+          <img src="pic/metric_enob.png" alt="ENOB 随输入频率变化曲线">
+          <figcaption>ENOB 趋势：由低频段 9 bits 以上下降到高频段约 7-8 bits。</figcaption>
+        </figure>
+        <figure class="metric-figure">
+          <img src="pic/metric_thd.png" alt="THD 随输入频率变化曲线">
+          <figcaption>THD 趋势：中高频段失真更明显，60 MHz 附近较差。</figcaption>
+        </figure>
+        <article class="card">
+          <small>Conclusion</small>
+          <h3>测试结论</h3>
+          <p>系统在 1 MHz - 10 MHz 输入范围内动态性能最好；40 MHz 以上性能开始明显下降；55 MHz - 65 MHz 是当前测试中需要重点关注的频段。</p>
+        </article>
+      </div>
+    </section>
+
+    <footer class="closing">
+      <p>测试结果说明板卡已完成 AD 采集、FPGA 搬运和 DA 输出闭环，并给出了 ADC 采样链路在不同输入频率下的动态性能表现。</p>
+      <a class="back-button" href="index.html">返回封面</a>
+    </footer>
+  </main>
+
+  <script>
+    const spectrumData = [
+      { freq: 1, img: "pic/spectrum_1M.png", snr: "60.06 dB", sfdr: "66.73 dBc", enob: "9.53 bits" },
+      { freq: 5, img: "pic/spectrum_5M.png", snr: "59.51 dB", sfdr: "62.45 dBc", enob: "9.24 bits" },
+      { freq: 10, img: "pic/spectrum_10M.png", snr: "59.47 dB", sfdr: "61.92 dBc", enob: "9.18 bits" },
+      { freq: 15, img: "pic/spectrum_15M.png", snr: "56.87 dB", sfdr: "59.99 dBc", enob: "8.79 bits" },
+      { freq: 20, img: "pic/spectrum_20M.png", snr: "58.58 dB", sfdr: "58.60 dBc", enob: "8.83 bits" },
+      { freq: 25, img: "pic/spectrum_25M.png", snr: "57.88 dB", sfdr: "57.39 dBc", enob: "8.66 bits" },
+      { freq: 30, img: "pic/spectrum_30M.png", snr: "56.78 dB", sfdr: "56.40 dBc", enob: "8.48 bits" },
+      { freq: 35, img: "pic/spectrum_35M.png", snr: "55.77 dB", sfdr: "55.88 dBc", enob: "8.29 bits" },
+      { freq: 40, img: "pic/spectrum_40M.png", snr: "55.09 dB", sfdr: "54.96 dBc", enob: "8.07 bits" },
+      { freq: 45, img: "pic/spectrum_45M.png", snr: "54.39 dB", sfdr: "51.74 dBc", enob: "7.82 bits" },
+      { freq: 50, img: "pic/spectrum_50M.png", snr: "52.90 dB", sfdr: "49.25 dBc", enob: "7.53 bits" },
+      { freq: 55, img: "pic/spectrum_55M.png", snr: "53.18 dB", sfdr: "47.94 dBc", enob: "7.41 bits" },
+      { freq: 60, img: "pic/spectrum_60M.png", snr: "52.81 dB", sfdr: "47.33 dBc", enob: "7.35 bits" },
+      { freq: 65, img: "pic/spectrum_65M.png", snr: "51.83 dB", sfdr: "47.51 dBc", enob: "7.35 bits" },
+      { freq: 70, img: "pic/spectrum_70M.png", snr: "51.33 dB", sfdr: "49.44 dBc", enob: "7.53 bits" },
+      { freq: 75, img: "pic/spectrum_75M.png", snr: "50.77 dB", sfdr: "53.68 dBc", enob: "7.78 bits" },
+      { freq: 80, img: "pic/spectrum_80M.png", snr: "50.17 dB", sfdr: "56.74 dBc", enob: "7.81 bits" }
+    ];
+
+    const slider = document.getElementById("freqSlider");
+    const freqLabel = document.getElementById("freqLabel");
+    const spectrumImage = document.getElementById("spectrumImage");
+    const snrValue = document.getElementById("snrValue");
+    const sfdrValue = document.getElementById("sfdrValue");
+    const enobValue = document.getElementById("enobValue");
+
+    function updateSpectrum(index) {
+      const item = spectrumData[index];
+      freqLabel.textContent = item.freq;
+      spectrumImage.src = item.img;
+      spectrumImage.alt = `${item.freq} MHz 输入下的 ADC FFT 频谱图`;
+      snrValue.textContent = item.snr;
+      sfdrValue.textContent = item.sfdr;
+      enobValue.textContent = item.enob;
+    }
+
+    slider.addEventListener("input", (event) => {
+      updateSpectrum(Number(event.target.value));
+    });
+  </script>
+</body>
+</html>
