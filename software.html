@@ -834,6 +834,139 @@
         width: 42%;
       }
     }
+    .site-orb-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(2, 4, 8, 0.38);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .24s ease;
+    }
+
+    .site-orb-backdrop.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .site-orb-shell {
+      position: fixed;
+      right: clamp(6px, 1.8vw, 24px);
+      top: 50%;
+      z-index: 90;
+      width: 360px;
+      height: 360px;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .site-orb-button {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 72px;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(100, 210, 255, 0.5);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 32% 28%, rgba(255,255,255,0.26), transparent 28%),
+        linear-gradient(145deg, rgba(10, 132, 255, 0.86), rgba(3, 18, 38, 0.92));
+      color: #fff;
+      box-shadow: 0 18px 42px rgba(10, 132, 255, 0.28), inset 0 0 22px rgba(100, 210, 255, 0.22);
+      cursor: pointer;
+      pointer-events: auto;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+    }
+
+    .site-orb-button:hover,
+    .site-orb-button:focus-visible {
+      transform: translate(-50%, -50%) scale(1.05);
+      border-color: rgba(255, 209, 102, 0.7);
+      box-shadow: 0 20px 54px rgba(10, 132, 255, 0.38), inset 0 0 24px rgba(255, 209, 102, 0.18);
+      outline: none;
+    }
+
+    .site-orb-menu {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .site-orb-link {
+      position: absolute;
+      min-width: 86px;
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 13px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      background: rgba(7, 14, 28, 0.86);
+      color: rgba(247, 251, 255, 0.88);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.34);
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(.82);
+      transition: opacity .22s ease, transform .24s ease, border-color .2s ease, background .2s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .site-orb-link:hover,
+    .site-orb-link:focus-visible {
+      border-color: rgba(255, 209, 102, 0.62);
+      background: rgba(10, 132, 255, 0.28);
+      color: #fff;
+      outline: none;
+    }
+
+    .site-orb-shell.is-open .site-orb-link {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+
+    .site-orb-link:nth-child(1) { left: 50%; top: 34px; transition-delay: .02s; }
+    .site-orb-link:nth-child(2) { left: 18%; top: 104px; transition-delay: .05s; }
+    .site-orb-link:nth-child(3) { left: 18%; top: 256px; transition-delay: .08s; }
+    .site-orb-link:nth-child(4) { left: 50%; top: 326px; transition-delay: .11s; }
+    .site-orb-link:nth-child(5) { left: 82%; top: 256px; transition-delay: .14s; }
+    .site-orb-link:nth-child(6) { left: 82%; top: 104px; transition-delay: .17s; }
+
+    @media (max-width: 700px) {
+      .site-orb-shell {
+        right: 0;
+        width: 300px;
+        height: 320px;
+      }
+
+      .site-orb-button {
+        width: 64px;
+        font-size: 14px;
+      }
+
+      .site-orb-link {
+        min-width: 78px;
+        min-height: 34px;
+        font-size: 12px;
+        padding: 0 10px;
+      }
+
+      .site-orb-link:nth-child(1) { left: 50%; top: 34px; }
+      .site-orb-link:nth-child(2) { left: 16%; top: 104px; }
+      .site-orb-link:nth-child(3) { left: 16%; top: 216px; }
+      .site-orb-link:nth-child(4) { left: 50%; top: 286px; }
+      .site-orb-link:nth-child(5) { left: 84%; top: 216px; }
+      .site-orb-link:nth-child(6) { left: 84%; top: 104px; }
+    }
   </style>
 </head>
 <body>
@@ -1210,5 +1343,37 @@
       <a class="back-button" href="index.html">返回封面</a>
     </footer>
   </main>
+  <div class="site-orb-backdrop" data-site-orb-close aria-hidden="true"></div>
+  <div class="site-orb-shell" aria-label="网站目录浮动导航">
+    <nav class="site-orb-menu" aria-label="网站目录">
+      <a class="site-orb-link" href="intro.html">项目简介</a>
+      <a class="site-orb-link" href="architecture.html">总体架构</a>
+      <a class="site-orb-link" href="problems.html">问题分析</a>
+      <a class="site-orb-link" href="hardware.html">硬件设计</a>
+      <a class="site-orb-link" href="software.html">软件设计</a>
+      <a class="site-orb-link" href="test.html">测试结果</a>
+    </nav>
+    <button class="site-orb-button" type="button" aria-expanded="false" aria-label="打开网站目录">目录</button>
+  </div>
+  <script>
+    (() => {
+      const shell = document.querySelector(".site-orb-shell");
+      const button = document.querySelector(".site-orb-button");
+      const backdrop = document.querySelector(".site-orb-backdrop");
+      if (!shell || !button || !backdrop) return;
+
+      const setOpen = (open) => {
+        shell.classList.toggle("is-open", open);
+        backdrop.classList.toggle("is-visible", open);
+        button.setAttribute("aria-expanded", String(open));
+      };
+
+      button.addEventListener("click", () => setOpen(!shell.classList.contains("is-open")));
+      backdrop.addEventListener("click", () => setOpen(false));
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") setOpen(false);
+      });
+    })();
+  </script>
 </body>
 </html>
