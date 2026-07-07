@@ -245,6 +245,49 @@
       white-space: nowrap;
     }
 
+    .video-trigger {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: clamp(18px, 2.6vw, 30px);
+      padding: 0 18px;
+      border: 1px solid rgba(255, 209, 102, 0.42);
+      border-radius: 999px;
+      background:
+        linear-gradient(135deg, rgba(255, 209, 102, 0.18), rgba(10, 132, 255, 0.12)),
+        rgba(255, 255, 255, 0.06);
+      color: #fff;
+      box-shadow: 0 18px 46px rgba(10, 132, 255, 0.18);
+      cursor: pointer;
+      font-size: clamp(14px, 1.15vw, 17px);
+      font-weight: 800;
+      letter-spacing: 0;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+
+    .video-trigger::before {
+      content: "";
+      width: 0;
+      height: 0;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-left: 11px solid var(--gold);
+      filter: drop-shadow(0 0 10px rgba(255, 209, 102, 0.5));
+    }
+
+    .video-trigger:hover,
+    .video-trigger:focus-visible {
+      border-color: rgba(255, 209, 102, 0.74);
+      background:
+        linear-gradient(135deg, rgba(255, 209, 102, 0.25), rgba(10, 132, 255, 0.18)),
+        rgba(255, 255, 255, 0.08);
+      box-shadow: 0 22px 58px rgba(255, 209, 102, 0.16);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
     .catalog {
       position: relative;
       z-index: 3;
@@ -340,6 +383,81 @@
       opacity: 1;
       pointer-events: auto;
       transform: translateY(0) scale(1);
+    }
+
+    .video-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      place-items: center;
+      padding: clamp(18px, 4vw, 50px);
+      background: rgba(2, 4, 8, 0.72);
+      backdrop-filter: blur(14px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .24s ease;
+    }
+
+    .video-modal.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .video-panel {
+      width: min(100%, 980px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(5, 12, 24, 0.94);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58);
+      transform: translateY(16px) scale(.98);
+      transition: transform .24s ease;
+    }
+
+    .video-modal.is-open .video-panel {
+      transform: translateY(0) scale(1);
+    }
+
+    .video-head {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 14px 0 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .video-head h2 {
+      margin: 0;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .video-close {
+      width: 34px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.07);
+      color: #fff;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .video-close:hover,
+    .video-close:focus-visible {
+      border-color: rgba(255, 209, 102, 0.68);
+      outline: none;
+    }
+
+    .video-panel video {
+      display: block;
+      width: 100%;
+      max-height: min(72vh, 640px);
+      background: #000;
     }
 
     .drawer-header {
@@ -510,6 +628,7 @@
         <div class="spec">
           <p>高速采集·低抖动时钟·FPGA硬件spi配置·ADDA回环验证</p>
         </div>
+        <button class="video-trigger" type="button">播放演示视频</button>
       </div>
 
       <div class="visual" aria-hidden="true">
@@ -542,10 +661,24 @@
     <audio controls preload="metadata" src="audio.mp3"></audio>
   </aside>
 
+  <div class="video-modal" id="demoVideoModal" aria-hidden="true">
+    <div class="video-panel" role="dialog" aria-modal="true" aria-labelledby="demoVideoTitle">
+      <div class="video-head">
+        <h2 id="demoVideoTitle">ADDA 高速采集子卡演示视频</h2>
+        <button class="video-close" type="button" aria-label="关闭视频">×</button>
+      </div>
+      <video controls preload="metadata" src="assets/e810d8f1dedc502b61ac7bc731273e83.mp4"></video>
+    </div>
+  </div>
+
   <script>
     const entry = document.querySelector(".micro-entry");
     const drawer = document.querySelector(".drawer");
     const close = document.querySelector(".close");
+    const videoTrigger = document.querySelector(".video-trigger");
+    const videoModal = document.querySelector(".video-modal");
+    const videoClose = document.querySelector(".video-close");
+    const demoVideo = videoModal.querySelector("video");
 
     function setDrawer(open) {
       drawer.classList.toggle("is-open", open);
@@ -555,9 +688,29 @@
     entry.addEventListener("click", () => setDrawer(!drawer.classList.contains("is-open")));
     close.addEventListener("click", () => setDrawer(false));
 
+    function setVideoModal(open) {
+      videoModal.classList.toggle("is-open", open);
+      videoModal.setAttribute("aria-hidden", String(!open));
+      if (open) {
+        demoVideo.currentTime = 0;
+        demoVideo.play().catch(() => {});
+      } else {
+        demoVideo.pause();
+      }
+    }
+
+    videoTrigger.addEventListener("click", () => setVideoModal(true));
+    videoClose.addEventListener("click", () => setVideoModal(false));
+    videoModal.addEventListener("click", (event) => {
+      if (event.target === videoModal) {
+        setVideoModal(false);
+      }
+    });
+
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         setDrawer(false);
+        setVideoModal(false);
       }
     });
   </script>
