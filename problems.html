@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>问题分析 | ADDA 高速采集子卡</title>
+  <style>
+    :root {
+      --ink: #f7fbff;
+      --text: rgba(247, 251, 255, 0.84);
+      --muted: rgba(247, 251, 255, 0.66);
+      --soft: rgba(247, 251, 255, 0.48);
+      --cyan: #64d2ff;
+      --blue: #0a84ff;
+      --gold: #ffd166;
+      --green: #67e8a5;
+      --red: #ff6b6b;
+      --line: rgba(255, 255, 255, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #020408;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      z-index: -2;
+      background:
+        radial-gradient(ellipse at 76% 12%, rgba(10, 132, 255, 0.25), transparent 35%),
+        radial-gradient(ellipse at 20% 78%, rgba(255, 209, 102, 0.12), transparent 30%),
+        linear-gradient(145deg, #000 0%, #06101d 48%, #000 100%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,0.032) 1px, transparent 1px);
+      background-size: 76px 76px;
+      opacity: 0.32;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      width: min(100%, 1180px);
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 50px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(247, 251, 255, 0.86);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .mark {
+      width: 30px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 50%;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .mark::before {
+      inset: 8px;
+      border: 1px solid rgba(100, 210, 255, 0.68);
+    }
+
+    .mark::after {
+      inset: 14px;
+      background: var(--gold);
+      box-shadow: 0 0 16px rgba(255, 209, 102, 0.62);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 13px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(247, 251, 255, 0.76);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 650;
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      border-color: rgba(100, 210, 255, 0.46);
+      background: rgba(10, 132, 255, 0.13);
+      color: #fff;
+      outline: none;
+    }
+
+    .intro {
+      padding-block: clamp(34px, 6vw, 70px) clamp(28px, 5vw, 54px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--cyan);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 820px;
+      color: #fff;
+      font-size: clamp(34px, 5.2vw, 60px);
+      line-height: 1.16;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .lead {
+      margin: 22px 0 0;
+      max-width: 910px;
+      color: var(--text);
+      font-size: clamp(17px, 1.55vw, 21px);
+      line-height: 1.82;
+      font-weight: 520;
+    }
+
+    .issue-nav {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      padding-block: 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .issue-nav a {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      border: 1px solid rgba(100, 210, 255, 0.18);
+      background: rgba(255, 255, 255, 0.052);
+      color: rgba(247, 251, 255, 0.78);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .section {
+      padding-block: clamp(46px, 7vw, 86px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .issue-head {
+      display: grid;
+      grid-template-columns: minmax(260px, .36fr) minmax(320px, .64fr);
+      gap: clamp(24px, 4vw, 54px);
+      align-items: start;
+      margin-bottom: clamp(24px, 4vw, 42px);
+    }
+
+    .issue-index {
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 10px 0 0;
+      color: #fff;
+      font-size: clamp(28px, 3.4vw, 44px);
+      line-height: 1.18;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .issue-copy {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(16px, 1.25vw, 19px);
+      line-height: 1.86;
+    }
+
+    .solution-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .solution {
+      min-height: 138px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.092), rgba(255,255,255,0.035));
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
+    }
+
+    .solution.problem {
+      border-color: rgba(255, 107, 107, 0.25);
+    }
+
+    .solution.answer {
+      border-color: rgba(103, 232, 165, 0.24);
+    }
+
+    .solution small {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .solution.problem small {
+      color: var(--red);
+    }
+
+    .solution.answer small {
+      color: var(--green);
+    }
+
+    .solution h3 {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(20px, 1.8vw, 24px);
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    .solution p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.78;
+    }
+
+    .principle-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .principle {
+      padding: 18px;
+      border: 1px solid rgba(100, 210, 255, 0.16);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(10,132,255,0.11), rgba(255,255,255,0.035));
+    }
+
+    .principle b {
+      display: block;
+      color: #fff;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .principle span {
+      display: block;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.72;
+    }
+
+    .image-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .image-grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .image-grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .image-grid.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    figure {
+      margin: 0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.046);
+      overflow: hidden;
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.2);
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      max-height: 360px;
+      object-fit: contain;
+      padding: 10px;
+      background: rgba(2, 4, 8, 0.42);
+    }
+
+    figure.compact img {
+      max-height: 260px;
+    }
+
+    figure.lane-highlight img {
+      max-height: 460px;
+      padding: 8px;
+    }
+
+    figure.jesd-link-figure img {
+      max-height: 380px;
+      padding: 8px;
+    }
+
+    figure.tall img {
+      max-height: 520px;
+    }
+
+    figure.power-figure img {
+      max-height: 420px;
+      padding: 8px;
+    }
+
+    figcaption {
+      padding: 12px 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .clock-layout,
+    .rate-layout,
+    .layout-compare,
+    .power-layout,
+    .integrity-layout {
+      display: grid;
+      gap: 14px;
+    }
+
+    .clock-layout {
+      grid-template-columns: .92fr 1.08fr;
+    }
+
+    .rate-layout {
+      grid-template-columns: .86fr 1.14fr;
+      align-items: stretch;
+    }
+
+    .layout-compare {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-bottom: 14px;
+    }
+
+    .small-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      align-items: center;
+    }
+
+    .small-strip figure img {
+      max-height: 180px;
+    }
+
+    .power-layout {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: stretch;
+    }
+
+    .integrity-layout {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .jesd-diagram {
+      min-height: 320px;
+      display: grid;
+      grid-template-columns: 92px minmax(140px, 1fr) 136px minmax(140px, 1fr) 92px;
+      align-items: center;
+      gap: 12px;
+      padding: clamp(24px, 4vw, 42px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(10,132,255,0.13), rgba(255,255,255,0.035)),
+        rgba(255,255,255,0.046);
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
+      overflow: hidden;
+    }
+
+    .chip-box {
+      min-height: 110px;
+      display: grid;
+      place-items: center;
+      padding: 18px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.045));
+      text-align: center;
+    }
+
+    .chip-box strong {
+      display: block;
+      color: #fff;
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .chip-box span {
+      display: block;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .lane-field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .lane {
+      position: relative;
+      height: 10px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, rgba(100,210,255,0.12), rgba(100,210,255,0.75), rgba(255,209,102,0.7));
+      box-shadow: 0 0 12px rgba(100, 210, 255, 0.12);
+    }
+
+    .lane::after {
+      content: "";
+      position: absolute;
+      right: -2px;
+      top: 2px;
+      width: 7px;
+      height: 7px;
+      border-top: 1px solid rgba(255, 209, 102, 0.9);
+      border-right: 1px solid rgba(255, 209, 102, 0.9);
+      transform: rotate(45deg);
+    }
+
+    .lane-group.reverse .lane {
+      background: linear-gradient(90deg, rgba(255,209,102,0.72), rgba(100,210,255,0.82), rgba(100,210,255,0.18));
+    }
+
+    .lane-group.reverse .lane::after {
+      left: -2px;
+      right: auto;
+      border-top: 0;
+      border-right: 0;
+      border-bottom: 2px solid rgba(255, 209, 102, 0.9);
+      border-left: 2px solid rgba(255, 209, 102, 0.9);
+    }
+
+    .lane-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .lane-label b {
+      color: #fff;
+      font-size: 18px;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .lane-group.reverse .lane-label {
+      flex-direction: row-reverse;
+    }
+
+    .closing {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding-block: clamp(34px, 5vw, 54px) 6px;
+    }
+
+    .closing p {
+      margin: 0;
+      max-width: 740px;
+      color: var(--soft);
+      font-size: 15px;
+      line-height: 1.72;
+    }
+
+    .back-button {
+      flex: 0 0 auto;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      border: 1px solid rgba(100, 210, 255, 0.3);
+      background: rgba(10, 132, 255, 0.13);
+      color: #fff;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 750;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    .back-button:hover,
+    .back-button:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(255, 209, 102, 0.58);
+      background: rgba(10, 132, 255, 0.22);
+      outline: none;
+    }
+
+    @media (max-width: 1080px) {
+      .issue-nav {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .issue-head,
+      .clock-layout,
+      .rate-layout,
+      .power-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .jesd-diagram {
+        grid-template-columns: 1fr;
+      }
+
+      .lane::after {
+        display: none;
+      }
+
+      .image-grid.three,
+      .principle-strip,
+      .small-strip,
+      .integrity-layout {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 900px) {
+      .jesd-diagram {
+        grid-template-columns: 1fr;
+      }
+
+      .lane::after {
+        display: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 18px;
+      }
+
+      .topbar,
+      .closing {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .issue-nav,
+      .solution-row,
+      .image-grid.two,
+      .image-grid.three,
+      .image-grid.four,
+      .principle-strip,
+      .layout-compare,
+      .small-strip,
+      .integrity-layout {
+        grid-template-columns: 1fr;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="mark" aria-hidden="true"></span>
+        <span>ADDA 高速采集子卡</span>
+      </a>
+      <nav class="nav" aria-label="页面导航">
+        <a href="index.html">首页</a>
+        <a href="intro.html">项目简介</a>
+        <a href="architecture.html">总体架构</a>
+      </nav>
+    </header>
+
+    <section class="intro">
+      <p class="eyebrow">问题分析</p>
+      <h1>高速 ADDA 板卡的关键设计问题</h1>
+      <p class="lead">
+        高速采集子卡的难点集中在时钟质量、通道同步、数据吞吐、板级布局、电源噪声和高速信号完整性。
+        本页按问题展开分析，并给出对应的设计方案。
+      </p>
+    </section>
+
+    <nav class="issue-nav" aria-label="问题目录">
+      <a href="#jitter">时钟抖动</a>
+      <a href="#sync">信号同步</a>
+      <a href="#rate">传输速率</a>
+      <a href="#layout">布局密度</a>
+      <a href="#power">电源完整性</a>
+      <a href="#si">信号完整性</a>
+    </nav>
+
+    <section class="section" id="jitter">
+      <div class="issue-head">
+        <div>
+          <span class="issue-index">Issue 01</span>
+          <h2>时钟抖动问题</h2>
+        </div>
+        <p class="issue-copy">
+          ADC 和 DAC 都依赖采样时钟工作。时钟边沿如果发生随机偏移，采样点就会偏离理想位置，带来相位噪声、信噪比下降和输出杂散增大。
+          对高速中频信号来说，时钟质量直接决定转换质量。
+        </p>
+      </div>
+
+      <div class="solution-row">
+        <article class="solution problem">
+          <small>Impact</small>
+          <h3>抖动会转化为幅度误差</h3>
+          <p>输入频率越高，同样的时间抖动造成的采样误差越明显，系统动态范围会被时钟噪声限制。</p>
+        </article>
+        <article class="solution answer">
+          <small>Solution</small>
+          <h3>LMK04828 双环 PLL 消抖</h3>
+          <p>采用低噪声 JESD204B 时钟芯片。第一环清理外部参考时钟，第二环产生并分配低抖动器件时钟和 SYSREF，同步送往 ADC、DAC 与 FPGA。</p>
+        </article>
+      </div>
+
+      <div class="clock-layout">
+        <figure>
+          <img src="assets/04828芯片.png" alt="LMK04828 时钟芯片">
+          <figcaption>LMK04828 低噪声时钟芯片，用于产生采样时钟、器件时钟和同步参考信号。</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/双环.png" alt="双环 PLL 原理图">
+          <figcaption>双环 PLL：前级锁定并清理参考时钟，后级完成低噪声频率合成和多路时钟分配。</figcaption>
+        </figure>
+      </div>
+      <div class="principle-strip" aria-label="LMK04828 双环 PLL 原理说明">
+        <div class="principle">
+          <b>PLL1：参考时钟清理</b>
+          <span>第一环锁定外部参考源，滤除参考时钟中的低频漂移和部分相位噪声，为后级提供更干净的基准。</span>
+        </div>
+        <div class="principle">
+          <b>PLL2：低噪声频率合成</b>
+          <span>第二环基于清理后的参考时钟和内部 VCO 产生高速器件时钟，进一步降低采样时钟抖动。</span>
+        </div>
+        <div class="principle">
+          <b>同步输出：Device Clock / SYSREF</b>
+          <span>LMK04828 将低抖动时钟和 SYSREF 分配给 ADC、DAC 与 FPGA，保证 JESD204B 链路同步启动。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sync">
+      <div class="issue-head">
+        <div>
+          <span class="issue-index">Issue 02</span>
+          <h2>多通道信号同步</h2>
+        </div>
+        <p class="issue-copy">
+          多路 AD/DA 通道需要在同一时间基准下工作。若高速数据线长度差过大，信号到达时间不同，会造成通道间偏斜，影响多通道采样和回放的一致性。
+        </p>
+      </div>
+
+      <div class="solution-row">
+        <article class="solution problem">
+          <small>Impact</small>
+          <h3>链路偏斜破坏同步</h3>
+          <p>走线长度、层间过孔和绕线路径都会影响传播延时，通道越多，同步约束越重要。</p>
+        </article>
+        <article class="solution answer">
+          <small>Solution</small>
+          <h3>等长约束与蛇形补偿</h3>
+          <p>在 PCB 布局中对关键 AD/DA 数据链路进行等长控制，通过蛇形走线补偿长度差，保证各路信号同步到达。</p>
+        </article>
+      </div>
+
+      <div class="image-grid three">
+        <figure>
+          <img src="assets/等长1.png" alt="等长网络一">
+          <figcaption>等长网络示例一：同组高速线长度保持一致。</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/等长2.png" alt="等长网络二">
+          <figcaption>等长网络示例二：另一组高速线同样进行长度匹配。</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/蛇形等长.png" alt="蛇形等长走线">
+          <figcaption>蛇形等长：通过局部绕线补偿路径差。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section" id="rate">
+      <div class="issue-head">
+        <div>
+          <span class="issue-index">Issue 03</span>
+          <h2>数据传输速率</h2>
+        </div>
+        <p class="issue-copy">
+          高速 ADC 和 DAC 会产生大量采样数据，传统并行接口需要大量引脚和严格时序约束。JESD204B 使用高速串行 lane 传输数据，可以减少引脚数量，同时提升高速数据链路的可扩展性。
+        </p>
+      </div>
+
+      <div class="solution-row">
+        <article class="solution problem">
+          <small>Impact</small>
+          <h3>并行接口难以承载高速吞吐</h3>
+          <p>通道数增加后，并行总线会带来引脚数量、布线空间和时序收敛压力。</p>
+        </article>
+        <article class="solution answer">
+          <small>Solution</small>
+          <h3>JESD204B + 16 Lane 高速链路</h3>
+          <p>AD/DA 与 FPGA 之间采用 JESD204B 协议，各 8 条 lane 承担高速串行通信，兼顾带宽、同步和布局可实现性。</p>
+        </article>
+      </div>
+
+      <div class="rate-layout">
+        <figure>
+          <img src="assets/JESD204B好处.png" alt="传统并行接口与 JESD204B 对比">
+          <figcaption>JESD204B 将大量并行数据线收敛为高速串行 lane，降低接口复杂度。</figcaption>
+        </figure>
+        <figure class="jesd-link-figure">
+          <img src="assets/adtofpgatoda.png" alt="AD 到 FPGA 再到 DA 的 8 lane JESD204B 链路">
+          <figcaption>JESD204B 链路结构：AD 通过 8 lane 送入 FPGA，FPGA 再通过 8 lane 发送至 DA。</figcaption>
+        </figure>
+      </div>
+
+      <figure class="lane-highlight" style="margin-top:14px;">
+        <img src="assets/8lane-highlight.png" alt="8 lane 高速通信高亮图">
+        <figcaption>8 lane 高速通信链路：负责 FPGA 与 AD/DA 芯片之间的数据传输。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section" id="layout">
+      <div class="issue-head">
+        <div>
+          <span class="issue-index">Issue 04</span>
+          <h2>板卡布局密度</h2>
+        </div>
+        <p class="issue-copy">
+          在板卡尺寸不变的条件下，通道数增加会压缩器件摆放、走线扇出、电源分配和高速链路空间。布局优化需要同时兼顾模块分区、走线长度、层间分配和可制造性。
+        </p>
+      </div>
+
+      <div class="solution-row">
+        <article class="solution problem">
+          <small>Impact</small>
+          <h3>尺寸固定，链路更多</h3>
+          <p>新增 DA 通道后，接口、供电、时钟和高速线数量同步增加，布线密度显著提升。</p>
+        </article>
+        <article class="solution answer">
+          <small>Solution</small>
+          <h3>重构布局与分层走线</h3>
+          <p>在原板卡尺寸基础上优化器件位置和走线层分配，实现 4 路 AD、4 路 DA 的结构升级。</p>
+        </article>
+      </div>
+
+      <div class="layout-compare">
+        <figure>
+          <img src="assets/旧布局.png" alt="旧布局">
+          <figcaption>原布局：2路AD，2路DA已将有限空间几乎用尽。</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/新布局.png" alt="新布局">
+          <figcaption>新布局：在板卡尺寸不变的基础上新增 DA 通道并优化模块位置。</figcaption>
+        </figure>
+      </div>
+
+      <div class="small-strip">
+        <figure class="compact">
+          <img src="assets/顶层.png" alt="顶层布局">
+          <figcaption>顶层</figcaption>
+        </figure>
+        <figure class="compact">
+          <img src="assets/底层.png" alt="底层布局">
+          <figcaption>底层</figcaption>
+        </figure>
+        <figure class="compact">
+          <img src="assets/内层2电源走线.png" alt="内层 2 电源走线">
+          <figcaption>内层 2 电源走线</figcaption>
+        </figure>
+        <figure class="compact">
+          <img src="assets/内层3信号走线.png" alt="内层 3 信号走线">
+          <figcaption>内层 3 信号走线</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section" id="power">
+      <div class="issue-head">
+        <div>
+          <span class="issue-index">Issue 05</span>
+          <h2>电源完整性</h2>
+        </div>
+        <p class="issue-copy">
+          高速转换芯片、时钟芯片和高速接口对电源噪声都很敏感。电源纹波可能通过模拟电源、数字电源或时钟电源进入系统，最终表现为采样噪声、时钟不稳定或链路状态异常。
+        </p>
+      </div>
+
+      <div class="solution-row">
+        <article class="solution problem">
+          <small>Impact</small>
+          <h3>噪声会沿电源网络传播</h3>
+          <p>开关电源纹波、瞬态电流和芯片附近的高频噪声都会影响模拟转换和时钟质量。</p>
+        </article>
+        <article class="solution answer">
+          <small>Solution</small>
+          <h3>分级稳压与就近去耦</h3>
+          <p>电源设计采用多路稳压、磁珠隔离、旁路电容和芯片电源脚就近去耦，将低频纹波和高频噪声分层处理。</p>
+        </article>
+      </div>
+
+      <div class="power-layout">
+        <figure class="power-figure">
+          <img src="assets/电源分配.png" alt="电源分配原理图局部">
+          <figcaption>多路稳压与电源分配：为不同芯片电源域提供独立供电路径。</figcaption>
+        </figure>
+        <figure class="power-figure">
+          <img src="assets/power-decoupling-clock.png" alt="时钟芯片电源去耦">
+          <figcaption>时钟相关电源脚降噪：降低时钟链路对电源噪声的敏感性。</figcaption>
+        </figure>
+        <figure class="power-figure">
+          <img src="assets/电源芯片旁电容.png" alt="电源芯片旁电容">
+          <figcaption>电源芯片旁电容：在稳压芯片附近放置旁路电容，抑制高频噪声和瞬态波动。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section" id="si">
+      <div class="issue-head">
+        <div>
+          <span class="issue-index">Issue 06</span>
+          <h2>信号完整性</h2>
+        </div>
+        <p class="issue-copy">
+          高速差分线对阻抗连续性、参考平面和串扰控制要求很高。若走线附近参考地不连续，或者高速线之间缺少隔离，容易引起反射、串扰和链路裕量下降。
+        </p>
+      </div>
+
+      <div class="solution-row">
+        <article class="solution problem">
+          <small>Impact</small>
+          <h3>高速线更怕不连续</h3>
+          <p>过孔、层切换和参考平面破碎都会破坏信号回流路径，影响高速链路稳定性。</p>
+        </article>
+        <article class="solution answer">
+          <small>Solution</small>
+          <h3>包地孔与完整参考地</h3>
+          <p>关键高速线周围布置包地孔，并使用连续参考地层控制回流路径，降低串扰并改善链路完整性。</p>
+        </article>
+      </div>
+
+      <div class="integrity-layout">
+        <figure>
+          <img src="assets/高速线包地孔.png" alt="高速线包地孔">
+          <figcaption>高速线包地孔：为关键信号提供隔离和稳定回流环境。</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/内层1参考地.png" alt="内层 1 参考地">
+          <figcaption>内层 1 参考地：保证高速信号参考平面连续。</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/内层4参考地.png" alt="内层 4 参考地">
+          <figcaption>内层 4 参考地：为不同层走线提供低阻抗回流路径。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <footer class="closing">
+      <p>这些设计约束共同决定了高速采集子卡的稳定性、同步性和可扩展性。</p>
+      <a class="back-button" href="index.html">返回封面</a>
+    </footer>
+  </main>
+</body>
+</html>
