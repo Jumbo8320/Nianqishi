@@ -1,0 +1,1360 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>硬件设计 | ADDA 高速采集子卡</title>
+  <style>
+    :root {
+      --ink: #f7fbff;
+      --text: rgba(247, 251, 255, 0.84);
+      --muted: rgba(247, 251, 255, 0.66);
+      --soft: rgba(247, 251, 255, 0.48);
+      --cyan: #64d2ff;
+      --blue: #0a84ff;
+      --gold: #ffd166;
+      --green: #67e8a5;
+      --line: rgba(255, 255, 255, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #020408;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      z-index: -2;
+      background:
+        radial-gradient(ellipse at 78% 12%, rgba(10, 132, 255, 0.27), transparent 35%),
+        radial-gradient(ellipse at 18% 78%, rgba(255, 209, 102, 0.12), transparent 31%),
+        linear-gradient(145deg, #000 0%, #06101d 48%, #000 100%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,0.032) 1px, transparent 1px);
+      background-size: 76px 76px;
+      opacity: 0.32;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      width: min(100%, 1180px);
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 50px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(247, 251, 255, 0.86);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .mark {
+      width: 30px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 50%;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .mark::before {
+      inset: 8px;
+      border: 1px solid rgba(100, 210, 255, 0.68);
+    }
+
+    .mark::after {
+      inset: 14px;
+      background: var(--gold);
+      box-shadow: 0 0 16px rgba(255, 209, 102, 0.62);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 13px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(247, 251, 255, 0.76);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 650;
+      transition: border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      border-color: rgba(100, 210, 255, 0.46);
+      background: rgba(10, 132, 255, 0.13);
+      color: #fff;
+      outline: none;
+    }
+
+    .intro {
+      padding-block: clamp(34px, 6vw, 70px) clamp(28px, 5vw, 54px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--cyan);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 820px;
+      color: #fff;
+      font-size: clamp(34px, 5.2vw, 60px);
+      line-height: 1.16;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .lead {
+      margin: 22px 0 0;
+      max-width: 910px;
+      color: var(--text);
+      font-size: clamp(17px, 1.55vw, 21px);
+      line-height: 1.82;
+      font-weight: 520;
+    }
+
+    .section-nav {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding-block: 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-nav a {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      border: 1px solid rgba(100, 210, 255, 0.18);
+      background: rgba(255, 255, 255, 0.052);
+      color: rgba(247, 251, 255, 0.78);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .section {
+      padding-block: clamp(46px, 7vw, 86px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(250px, .35fr) minmax(320px, .65fr);
+      gap: clamp(24px, 4vw, 54px);
+      align-items: start;
+      margin-bottom: clamp(24px, 4vw, 42px);
+    }
+
+    .section-index {
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 10px 0 0;
+      color: #fff;
+      font-size: clamp(28px, 3.4vw, 44px);
+      line-height: 1.18;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .section-copy {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(16px, 1.25vw, 19px);
+      line-height: 1.86;
+    }
+
+    .design-grid,
+    .media-grid,
+    .power-grid,
+    .link-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .design-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-bottom: 18px;
+    }
+
+    .media-grid {
+      grid-template-columns: 1.05fr .95fr;
+    }
+
+    .single-media {
+      display: block;
+      max-width: 900px;
+      margin-inline: auto;
+    }
+
+    .single-media img {
+      max-height: 520px;
+    }
+
+    .power-grid {
+      grid-template-columns: .95fr 1.05fr;
+      align-items: stretch;
+    }
+
+    .link-grid {
+      grid-template-columns: .9fr 1.1fr;
+    }
+
+    .card {
+      min-height: 150px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.092), rgba(255,255,255,0.035));
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
+    }
+
+    .card small {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .card h3 {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(20px, 1.8vw, 24px);
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    .card p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.78;
+    }
+
+    figure {
+      margin: 0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.046);
+      overflow: hidden;
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.2);
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      max-height: 420px;
+      object-fit: contain;
+      padding: 10px;
+      background: rgba(2, 4, 8, 0.42);
+    }
+
+    figure.tall img {
+      max-height: 520px;
+    }
+
+    figure.wide img {
+      max-height: 360px;
+    }
+
+    figcaption {
+      padding: 12px 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .power-main-figure {
+      align-self: start;
+    }
+
+    .power-main-figure img {
+      height: auto;
+      max-height: 560px;
+    }
+
+    .power-main-figure figcaption {
+      padding: 14px 16px;
+      background: linear-gradient(90deg, rgba(100,210,255,0.06), rgba(255,209,102,0.035));
+      color: rgba(247, 251, 255, 0.72);
+    }
+
+    .power-left,
+    .power-side {
+      display: grid;
+      gap: 14px;
+    }
+
+    .power-left {
+      align-content: stretch;
+    }
+
+    .power-notes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(255,209,102,0.07), rgba(100,210,255,0.04)),
+        rgba(255,255,255,0.04);
+    }
+
+    .power-note {
+      min-height: 0;
+      padding: 10px 11px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 6px;
+      background: rgba(2, 4, 8, 0.28);
+    }
+
+    .power-note b {
+      display: block;
+      color: #fff;
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .power-note span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .tree {
+      display: grid;
+      grid-template-columns: minmax(190px, .8fr) minmax(70px, .22fr) minmax(300px, 1.1fr);
+      align-items: center;
+      gap: 16px;
+      min-height: 0;
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(10,132,255,0.13), rgba(255,255,255,0.035)),
+        rgba(255,255,255,0.046);
+    }
+
+    .tree-node {
+      min-height: 92px;
+      display: grid;
+      place-items: center;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.045));
+      text-align: center;
+    }
+
+    .tree-node strong {
+      display: block;
+      color: #fff;
+      font-size: clamp(20px, 2.3vw, 30px);
+      line-height: 1.1;
+    }
+
+    .tree-node span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .tree-arrow {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(100,210,255,0.2), rgba(100,210,255,0.85));
+      position: relative;
+    }
+
+    .tree-arrow::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: -4px;
+      width: 8px;
+      height: 8px;
+      border-top: 1px solid rgba(255, 209, 102, 0.9);
+      border-right: 1px solid rgba(255, 209, 102, 0.9);
+      transform: rotate(45deg);
+    }
+
+    .tree-center {
+      min-height: 150px;
+      border-color: rgba(100, 210, 255, 0.28);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(100,210,255,0.18), transparent 58%),
+        linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.045));
+      box-shadow: 0 20px 60px rgba(10, 132, 255, 0.16);
+    }
+
+    .clock-outputs {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 4px;
+      padding-top: 22px;
+      border-top: 1px solid rgba(255, 255, 255, 0.09);
+      position: relative;
+    }
+
+    .clock-outputs::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 1px;
+      height: 22px;
+      background: linear-gradient(180deg, rgba(255,209,102,0.75), rgba(100,210,255,0.2));
+    }
+
+    .clock-output {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      min-height: 128px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
+        rgba(255, 255, 255, 0.045);
+      position: relative;
+    }
+
+    .clock-output::before {
+      content: "";
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      top: -23px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(100,210,255,0.05), rgba(100,210,255,0.62), rgba(100,210,255,0.05));
+    }
+
+    .clock-output b {
+      color: #fff;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .clock-output span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .clock-output code {
+      color: #fff;
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .clock-output-aux {
+      grid-column: 1 / -1;
+      grid-template-columns: minmax(130px, .22fr) minmax(240px, .34fr) minmax(0, .44fr);
+      align-items: center;
+      min-height: 82px;
+      border-color: rgba(255, 209, 102, 0.18);
+      background:
+        linear-gradient(90deg, rgba(255,209,102,0.075), rgba(100,210,255,0.055)),
+        rgba(255,255,255,0.04);
+    }
+
+    .clock-map {
+      margin-top: 14px;
+      border: 1px solid rgba(100, 210, 255, 0.16);
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(100,210,255,0.08), rgba(255,209,102,0.045)),
+        rgba(255,255,255,0.046);
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.2);
+    }
+
+    .clock-map-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .clock-map-head h3 {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(20px, 2vw, 26px);
+      line-height: 1.25;
+    }
+
+    .clock-map-head p {
+      margin: 0;
+      max-width: 520px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .clock-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .clock-table th,
+    .clock-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .clock-table th {
+      color: rgba(100, 210, 255, 0.92);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .clock-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .clock-table code {
+      display: inline-block;
+      padding: 3px 7px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 6px;
+      background: rgba(2, 4, 8, 0.36);
+      color: #fff;
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .clock-table td:nth-child(2) {
+      color: var(--gold);
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .clock-table td:nth-child(3) {
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    .power-rail {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .power-side .power-rail {
+      margin-top: 0;
+    }
+
+    .rail {
+      min-height: 76px;
+      padding: 14px;
+      border: 1px solid rgba(255, 209, 102, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 209, 102, 0.06);
+    }
+
+    .rail b {
+      display: block;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    .rail span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .power-chain {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: center;
+      gap: 12px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255,209,102,0.12), rgba(10,132,255,0.06)),
+        rgba(255,255,255,0.045);
+      margin-bottom: 14px;
+    }
+
+    .power-stage {
+      min-height: 92px;
+      display: grid;
+      place-items: center;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.045));
+      text-align: center;
+    }
+
+    .power-stage strong {
+      display: block;
+      color: #fff;
+      font-size: clamp(20px, 2.2vw, 28px);
+      line-height: 1.15;
+    }
+
+    .power-stage span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .power-arrow {
+      width: 42px;
+      height: 1px;
+      position: relative;
+      background: linear-gradient(90deg, rgba(255,209,102,0.2), rgba(100,210,255,0.85));
+    }
+
+    .power-arrow::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: -4px;
+      width: 8px;
+      height: 8px;
+      border-top: 1px solid rgba(100, 210, 255, 0.9);
+      border-right: 1px solid rgba(100, 210, 255, 0.9);
+      transform: rotate(45deg);
+    }
+
+    .power-chip-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .power-chip-grid figure img {
+      max-height: 210px;
+    }
+
+    .optimization-lead {
+      margin: 0 0 22px;
+      padding: 18px 20px;
+      border: 1px solid rgba(255, 209, 102, 0.22);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(255,209,102,0.09), rgba(100,210,255,0.045)),
+        rgba(255,255,255,0.045);
+      color: rgba(247, 251, 255, 0.84);
+      font-size: clamp(16px, 1.25vw, 18px);
+      line-height: 1.75;
+      font-weight: 600;
+    }
+
+    .opt-block {
+      display: grid;
+      grid-template-columns: minmax(260px, .38fr) minmax(360px, .62fr);
+      gap: 16px;
+      align-items: start;
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.072), rgba(255,255,255,0.028)),
+        rgba(255,255,255,0.035);
+    }
+
+    .opt-copy h3 {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(22px, 2.1vw, 30px);
+      line-height: 1.22;
+    }
+
+    .opt-copy p {
+      margin: 12px 0 0;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.78;
+    }
+
+    .metric-strip {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .metric {
+      min-height: 92px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: rgba(2, 4, 8, 0.32);
+    }
+
+    .metric strong {
+      display: block;
+      color: #fff;
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .metric-after {
+      border-color: rgba(103, 232, 165, 0.32);
+      background: rgba(103, 232, 165, 0.075);
+    }
+
+    .metric-arrow {
+      color: var(--cyan);
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .metric-bar {
+      grid-column: 1 / -1;
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(255,209,102,0.95) 0 61.4%, rgba(103,232,165,0.95) 61.4% 100%);
+      box-shadow: 0 0 24px rgba(103, 232, 165, 0.16);
+    }
+
+    .opt-media-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .opt-media-grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .opt-media-grid figure img {
+      max-height: 260px;
+    }
+
+    .opt-media-grid.three figure img {
+      max-height: 230px;
+    }
+
+    .closing {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding-block: clamp(34px, 5vw, 54px) 6px;
+    }
+
+    .closing p {
+      margin: 0;
+      max-width: 740px;
+      color: var(--soft);
+      font-size: 15px;
+      line-height: 1.72;
+    }
+
+    .back-button {
+      flex: 0 0 auto;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      border: 1px solid rgba(100, 210, 255, 0.3);
+      background: rgba(10, 132, 255, 0.13);
+      color: #fff;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 750;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    .back-button:hover,
+    .back-button:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(255, 209, 102, 0.58);
+      background: rgba(10, 132, 255, 0.22);
+      outline: none;
+    }
+
+    @media (max-width: 1080px) {
+      .section-head,
+      .media-grid,
+      .power-grid,
+      .opt-block,
+      .link-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .design-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .tree {
+        grid-template-columns: 1fr;
+      }
+
+      .clock-outputs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .clock-output-aux {
+        grid-template-columns: 1fr;
+      }
+
+      .clock-output::before {
+        display: none;
+      }
+
+      .power-chain {
+        grid-template-columns: 1fr;
+      }
+
+      .power-arrow {
+        width: 1px;
+        height: 30px;
+        margin: 0 auto;
+        background: linear-gradient(180deg, rgba(255,209,102,0.2), rgba(100,210,255,0.85));
+      }
+
+      .power-arrow::after {
+        right: -4px;
+        top: auto;
+        bottom: -1px;
+        transform: rotate(135deg);
+      }
+
+      .tree-arrow {
+        width: 1px;
+        height: 32px;
+        margin: 0 auto;
+        background: linear-gradient(180deg, rgba(100,210,255,0.2), rgba(100,210,255,0.85));
+      }
+
+      .tree-arrow::after {
+        right: -4px;
+        top: auto;
+        bottom: -1px;
+        transform: rotate(135deg);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 18px;
+      }
+
+      .topbar,
+      .closing {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .section-nav,
+      .design-grid,
+      .power-rail,
+      .power-chip-grid,
+      .power-notes,
+      .opt-media-grid,
+      .opt-media-grid.three,
+      .clock-outputs {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-arrow {
+        transform: rotate(90deg);
+        justify-self: center;
+      }
+
+      .clock-map-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .clock-map {
+        overflow-x: auto;
+      }
+
+      .clock-table {
+        min-width: 720px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="mark" aria-hidden="true"></span>
+        <span>ADDA 高速采集子卡</span>
+      </a>
+      <nav class="nav" aria-label="页面导航">
+        <a href="index.html">首页</a>
+        <a href="architecture.html">总体架构</a>
+        <a href="problems.html">问题分析</a>
+      </nav>
+    </header>
+
+    <section class="intro">
+      <p class="eyebrow">硬件设计</p>
+      <h1>围绕时钟、电源与高速链路的整体设计</h1>
+      <p class="lead">
+        ADDA 子卡的硬件整体设计围绕三条主线展开：用低抖动时钟保证采样基准，用分层电源树支撑多芯片稳定工作，用 JESD204B 高速链路完成 AD/DA 与 FPGA 之间的数据传输。
+      </p>
+    </section>
+
+    <nav class="section-nav" aria-label="硬件设计目录">
+      <a href="#clock">时钟树设计</a>
+      <a href="#power">电源树设计</a>
+      <a href="#link">高速数据链路设计</a>
+      <a href="#optimization">局部优化</a>
+    </nav>
+
+    <section class="section" id="clock">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Hardware 01</span>
+          <h2>时钟树设计</h2>
+        </div>
+        <p class="section-copy">
+          高速 AD/DA 的采样质量首先取决于时钟质量。板卡以 LMK04828 为时钟核心，对参考源进行清理和频率合成，再向 ADC、DAC、FPGA 和 JESD204B 同步链路分配器件时钟与 SYSREF。
+        </p>
+      </div>
+
+      <div class="design-grid">
+        <article class="card">
+          <small>Reference</small>
+          <h3>参考源输入</h3>
+          <p>外部参考时钟进入 LMK04828，作为后级采样时钟和同步信号的基准。</p>
+        </article>
+        <article class="card">
+          <small>Jitter Cleaner</small>
+          <h3>双环 PLL 消抖</h3>
+          <p>PLL1 清理参考时钟，PLL2 进行低噪声频率合成，降低采样时钟抖动。</p>
+        </article>
+        <article class="card">
+          <small>Sync</small>
+          <h3>SYSREF 同步</h3>
+          <p>通过 SYSREF 与器件时钟配合，实现 ADC、DAC 与 FPGA 的 JESD204B 确定性同步。</p>
+        </article>
+      </div>
+
+      <div class="clock-map" aria-label="LMK04828 输出分配表">
+        <div class="clock-map-head">
+          <h3>LMK04828 输出分配</h3>
+          <p>DCLK 主要承担器件时钟，SDCLK 主要承担 SYSREF/参考同步。各路输出按器件分组，保证 ADC、DAC 与 FPGA 使用同一时钟源下的同步基准。</p>
+        </div>
+        <table class="clock-table">
+          <thead>
+            <tr>
+              <th>LMK 输出</th>
+              <th>连接对象</th>
+              <th>作用</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>DCLKout2</code> / <code>SDCLKout3</code></td>
+              <td>ADCLK1 / ADREF1</td>
+              <td>送往第一片 ADC。DCLKout2 提供采样器件时钟，SDCLKout3 提供与 JESD204B 对齐相关的 SYSREF/同步参考。</td>
+            </tr>
+            <tr>
+              <td><code>DCLKout4</code> / <code>SDCLKout5</code></td>
+              <td>ADCLK2 / ADREF2</td>
+              <td>送往第二片 ADC。两片 ADC 分别获得独立的器件时钟与同步参考，便于多通道采样保持确定性相位关系。</td>
+            </tr>
+            <tr>
+              <td><code>DCLKout12</code> / <code>SDCLKout13</code></td>
+              <td>DACLK / DAREF</td>
+              <td>送往 DAC。DCLKout12 作为 DA 转换时钟，SDCLKout13 作为 DAC 侧 SYSREF/同步参考，使回放链路与采集链路处于统一时钟体系。</td>
+            </tr>
+            <tr>
+              <td><code>DCLKout8</code></td>
+              <td>FPGACLK</td>
+              <td>送往 FPGA 逻辑侧，作为 JESD204B core clock 以及板上时钟存在性监测的重要参考。</td>
+            </tr>
+            <tr>
+              <td><code>SDCLKout9</code></td>
+              <td>GTX REF</td>
+              <td>送往 FPGA 高速收发器参考时钟端，支撑 JESD204B 高速 lane 的串行收发。</td>
+            </tr>
+            <tr>
+              <td><code>DCLKout0</code></td>
+              <td>FB</td>
+              <td>接入反馈链路，用于 LMK04828 内部锁相与相位校准，帮助双环 PLL 建立稳定、低抖动的输出基准。</td>
+            </tr>
+            <tr>
+              <td><code>SDCLKout1</code></td>
+              <td>FPGAREF</td>
+              <td>送往 FPGA 侧参考网络，作为系统同步与参考时钟体系的一部分。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="wide single-media" style="margin-top:14px;">
+        <img src="assets/时钟及其外围.png" alt="LMK04828 时钟及外围原理图">
+        <figcaption>LMK04828 时钟及外围电路：参考源、反馈链路、SPI 控制信号与多路时钟输出共同构成板卡时钟树。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section" id="power">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Hardware 02</span>
+          <h2>电源树设计</h2>
+        </div>
+        <p class="section-copy">
+          板卡电源采用 DCDC + LDO 的两级供电思路：前级 DCDC 负责高效率降压和提供主要功率，后级 LDO 负责低噪声稳压和电源净化。这样既能控制功耗和发热，又能满足 ADC、DAC、时钟芯片对低噪声电源的要求。
+        </p>
+      </div>
+
+      <div class="design-grid">
+        <article class="card">
+          <small>DCDC</small>
+          <h3>高效率前级降压</h3>
+          <p>DCDC 转换效率高，适合从输入电源生成主要中间电压，承担较大的电流需求；缺点是开关纹波相对更明显。</p>
+        </article>
+        <article class="card">
+          <small>LDO</small>
+          <h3>低噪声后级稳压</h3>
+          <p>LDO 输出噪声低、纹波抑制能力好，适合给 ADC、DAC 和时钟等敏感电源域做二次净化；缺点是效率受压差影响。</p>
+        </article>
+        <article class="card">
+          <small>Board Use</small>
+          <h3>按电源域分配</h3>
+          <p>板上先生成中间电源，再根据模拟、数字、时钟和接口电源域分别稳压、滤波和去耦。</p>
+        </article>
+      </div>
+
+      <div class="power-chain" aria-label="DCDC 加 LDO 电源链路">
+        <div class="power-stage">
+          <div>
+            <strong>输入电源</strong>
+            <span>板卡主供电</span>
+          </div>
+        </div>
+        <div class="power-arrow" aria-hidden="true"></div>
+        <div class="power-stage">
+          <div>
+            <strong>DCDC</strong>
+            <span>高效率降压 / 大电流供电</span>
+          </div>
+        </div>
+        <div class="power-arrow" aria-hidden="true"></div>
+        <div class="power-stage">
+          <div>
+            <strong>LDO + 滤波</strong>
+            <span>低噪声电源输出</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="power-grid">
+        <div class="power-left">
+          <figure class="tall power-main-figure">
+            <img src="assets/电源分配.png" alt="电源分配图">
+            <figcaption>电源分配：DCDC 生成主要电源轨，LDO 和滤波网络进一步为 AD、DA、时钟和接口模块提供低噪声供电。</figcaption>
+          </figure>
+          <div class="power-notes" aria-label="电源树要点">
+            <div class="power-note">
+              <b>先高效降压</b>
+              <span>由 DCDC 承担主要功率转换，降低整体发热。</span>
+            </div>
+            <div class="power-note">
+              <b>再低噪声净化</b>
+              <span>敏感模拟、时钟电源进入 LDO 和滤波网络。</span>
+            </div>
+            <div class="power-note">
+              <b>最后就近去耦</b>
+              <span>芯片旁放置旁路电容，抑制瞬态扰动。</span>
+            </div>
+          </div>
+        </div>
+        <div class="power-side">
+          <div class="power-rail">
+            <div class="rail">
+              <b>模拟电源</b>
+              <span>由 LDO 进一步净化，服务 AD/DA 模拟核心。</span>
+            </div>
+            <div class="rail">
+              <b>数字电源</b>
+              <span>由 DCDC 提供效率基础，配合局部去耦支撑瞬态电流。</span>
+            </div>
+            <div class="rail">
+              <b>时钟电源</b>
+              <span>优先采用低噪声稳压，避免电源噪声进入时钟链路。</span>
+            </div>
+            <div class="rail">
+              <b>接口电源</b>
+              <span>服务 SPI、FMC 和电平转换等控制接口。</span>
+            </div>
+          </div>
+          <div class="power-chip-grid">
+            <figure>
+              <img src="assets/SPX5205M5-L/SPX5205M5-L.png" alt="DCDC 电源芯片">
+              <figcaption>DCDC 级：承担高效率电压转换和主要功率供给。</figcaption>
+            </figure>
+            <figure>
+              <img src="assets/TPS74401RGWT.png" alt="TPS74401RGWT LDO 芯片">
+              <figcaption>LDO 级：为敏感模拟、时钟和转换芯片提供低噪声稳压。</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="link">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Hardware 03</span>
+          <h2>高速数据链路设计</h2>
+        </div>
+        <p class="section-copy">
+          AD/DA 与 FPGA 之间的数据量大、速率高，因此采用 JESD204B 高速串行接口。AD 方向将采样数据送入 FPGA，DA 方向由 FPGA 输出数字波形数据，双向链路共同构成采集与回放通道。
+        </p>
+      </div>
+
+      <div class="design-grid">
+        <article class="card">
+          <small>Protocol</small>
+          <h3>JESD204B 接口</h3>
+          <p>用高速串行 lane 替代大量并行数据线，降低引脚和布线压力。</p>
+        </article>
+        <article class="card">
+          <small>Lane</small>
+          <h3>8 Lane 数据通道</h3>
+          <p>AD 到 FPGA、FPGA 到 DA 均采用 8 lane 承担高速数据传输。</p>
+        </article>
+        <article class="card">
+          <small>Layout</small>
+          <h3>高速差分布线</h3>
+          <p>关键 lane 采用差分、等长和参考地连续设计，保障链路稳定性。</p>
+        </article>
+      </div>
+
+      <div class="link-grid">
+        <figure class="wide">
+          <img src="assets/adtofpgatoda.png" alt="AD 到 FPGA 再到 DA 的高速链路">
+          <figcaption>高速链路结构：AD 通过 8 lane 送入 FPGA，FPGA 再通过 8 lane 发送至 DA。</figcaption>
+        </figure>
+        <figure class="wide">
+          <img src="assets/hw-interface-fmc-schematic.png" alt="FMC 接口控制信号原理图局部">
+          <figcaption>FMC/FPGA 接口：高速数据链路与 SPI、复位、同步等控制信号共同连接主板。</figcaption>
+        </figure>
+      </div>
+
+      <div class="link-grid" style="margin-top:14px;">
+        <figure class="wide">
+          <img src="assets/JESD204B好处.png" alt="JESD204B 与传统并行接口对比">
+          <figcaption>JESD204B 的优势：减少并行线数量，让高速数据接口更适合紧凑板卡布局。</figcaption>
+        </figure>
+        <figure class="wide">
+          <img src="assets/8lane-highlight.png" alt="8 lane 高速通信高亮图">
+          <figcaption>8 lane 高速通信：承担 FPGA 与转换芯片之间的数据传输。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section" id="optimization">
+      <div class="section-head">
+        <div>
+          <span class="section-index">Hardware 04</span>
+          <h2>局部优化</h2>
+        </div>
+        <p class="section-copy">
+          在整体框架确定后，板卡优化主要围绕时钟走线、散热结构和电源布局展开，目标是在有限板面内进一步降低损耗、改善热环境并提升电源稳定性。
+        </p>
+      </div>
+
+      <p class="optimization-lead">指导老师齐美彬教授为本项目提供了大量优化思路，下面开始介绍我团队针对初版的优化工作。</p>
+
+      <article class="opt-block">
+        <div class="opt-copy">
+          <h3>时钟走线重分配</h3>
+          <p>
+            初版时钟走线采用 DCLKout6 和 SDCLKout7，这两个引脚距离 AD 芯片较远，长距离走线容易引入衰减和干扰。团队将时钟输出调整到 DCLKout12 和 SDCLKout13，使关键时钟网络更靠近目标芯片。
+          </p>
+          <div class="metric-strip" aria-label="时钟网络长度变化">
+            <div class="metric">
+              <strong>1554.8mil</strong>
+              <span>优化前网络长度</span>
+            </div>
+            <div class="metric-arrow" aria-hidden="true">→</div>
+            <div class="metric metric-after">
+              <strong>954mil</strong>
+              <span>优化后网络长度</span>
+            </div>
+            <div class="metric-bar" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="opt-media-grid">
+          <figure>
+            <img src="assets/更改走线前.png" alt="时钟走线优化前">
+            <figcaption>优化前：采用 DCLKout6 / SDCLKout7，走线距离较长。</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/更改走线后.png" alt="时钟走线优化后">
+            <figcaption>优化后：改用 DCLKout12 / SDCLKout13，网络长度缩短至 954mil。</figcaption>
+          </figure>
+        </div>
+      </article>
+
+      <article class="opt-block">
+        <div class="opt-copy">
+          <h3>散热结构设计</h3>
+          <p>
+            子板运行时局部发热明显，团队针对主要热源设计散热片安装位置，并使用 SolidWorks 完成散热片结构建模，再联系商家定制实物。散热片通过定位孔与板卡结构配合，提升长时间运行时的热稳定性。
+          </p>
+        </div>
+        <div class="opt-media-grid three">
+          <figure>
+            <img src="assets/散热片定位孔.png" alt="散热片定位孔">
+            <figcaption>定位孔设计：为散热片安装和受力位置预留结构基础。</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/散热片solidworks图.png" alt="散热片 SolidWorks 图">
+            <figcaption>SolidWorks 建模：确认散热片尺寸、孔位和板卡配合关系。</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/散热片实物.png" alt="散热片实物">
+            <figcaption>定制实物：根据设计尺寸加工散热片并用于板卡装配。</figcaption>
+          </figure>
+        </div>
+      </article>
+
+      <article class="opt-block">
+        <div class="opt-copy">
+          <h3>DCDC 芯片 Layout 优化</h3>
+          <p>
+            初版 DCDC 外围布局相对分散，功率回路、输入输出电容和反馈网络的摆放不够紧凑。参考 TI 官方评估思路后，团队重新整理 DCDC 芯片周边布局，缩短关键回路，优化电容靠近程度和走线方向。
+          </p>
+        </div>
+        <div class="opt-media-grid">
+          <figure>
+            <img src="assets/DC优化前.png" alt="DCDC layout 优化前">
+            <figcaption>优化前：外围器件和关键回路分布较散，布局紧凑性不足。</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/DC优化后.png" alt="DCDC layout 优化后">
+            <figcaption>优化后：重排芯片外围器件，改善功率回路和局部滤波路径。</figcaption>
+          </figure>
+        </div>
+      </article>
+    </section>
+
+    <footer class="closing">
+      <p>硬件设计从整体时钟、电源和数据链路框架出发，并通过局部走线、散热结构和电源布局优化进一步提升板卡可靠性。</p>
+      <a class="back-button" href="index.html">返回封面</a>
+    </footer>
+  </main>
+</body>
+</html>
